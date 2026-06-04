@@ -8,7 +8,11 @@ export default defineConfig({
     host: true,
     open: true,
     proxy: {
-      "/api": "http://localhost:4000",
+      "/api": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+        headers: { "bypass-tunnel-reminder": "true" },
+      },
     },
   },
 });

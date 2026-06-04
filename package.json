@@ -10,10 +10,12 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "start": "npm run dev",
-    "share": "concurrently \"node server/index.js\" \"vite\" \"lt --port 5173 --subdomain ssp-web-app\""
+    "share": "concurrently \"node server/index.js\" \"vite\" \"lt --port 5173 --subdomain ssp-web-app\" --handle-input",
+    "tunnel": "lt --port 5173 --subdomain ssp-web-app --local-host localhost"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
     "express": "^4.19.0",
     "pg": "^8.21.0",
     "react": "^18.3.1",
