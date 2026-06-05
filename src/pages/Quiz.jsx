@@ -43,12 +43,16 @@ export default function Quiz() {
       setLocked(false)
     } else {
       // REQ-17: store quiz score
-      await saveScore(user.id, {
-        quizId: active.id,
-        quizTitle: active.title,
-        score: score,
-        total: active.questions.length,
-      })
+      try {
+        await saveScore(user.id, {
+          quizId: active.id,
+          quizTitle: active.title,
+          score: score,
+          total: active.questions.length,
+        })
+      } catch (e) {
+        console.error('Score save failed:', e)
+      }
       setFinished(true)
     }
   }

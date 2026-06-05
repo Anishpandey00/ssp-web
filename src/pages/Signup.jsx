@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { registerUser } from "../api/backend.js";
@@ -142,7 +142,9 @@ const LoginLine = styled.p`
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { user, login } = useAuth();
+
+  useEffect(() => { if (user) navigate('/dashboard') }, [user]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -185,7 +187,7 @@ export default function Signup() {
       return;
     }
 
-    login(res.user);
+    login(res.user, res.token);
     navigate("/dashboard");
   };
 

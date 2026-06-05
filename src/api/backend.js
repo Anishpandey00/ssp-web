@@ -1,8 +1,21 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
+function getToken() {
+  try {
+    const raw = sessionStorage.getItem("ssp_session");
+    return raw ? JSON.parse(raw).token || null : null;
+  } catch {
+    return null;
+  }
+}
+
 async function request(path, options = {}) {
+  const token = getToken();
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(`${BASE_URL}/${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
     body: options.body && JSON.stringify(options.body),
   });
@@ -40,14 +53,14 @@ export async function addTask(userId, task) {
 export async function toggleTask(userId, taskId) {
   return request(
     `tasks/${encodeURIComponent(userId)}/${encodeURIComponent(taskId)}/toggle`,
-    { method: "PATCH" },
+    { method: "PATCH" }
   );
 }
 
 export async function deleteTask(userId, taskId) {
   return request(
     `tasks/${encodeURIComponent(userId)}/${encodeURIComponent(taskId)}`,
-    { method: "DELETE" },
+    { method: "DELETE" }
   );
 }
 
