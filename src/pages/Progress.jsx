@@ -5,10 +5,23 @@ import { getProgress } from '../api/backend.js'
 export default function Progress() {
   const { user } = useAuth()
   const [p, setP] = useState(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    getProgress(user.id).then((res) => setP(res.progress))
+    getProgress(user.id)
+      .then((res) => {
+        if (res.ok) setP(res.progress)
+        else setError(res.error || 'Failed to load progress.')
+      })
+      .catch(() => setError('Network error. Is the backend server running?'))
   }, [user.id])
+
+  if (error) return (
+    <div>
+      <h2 className="section-title">Your Progress</h2>
+      <p className="error">{error}</p>
+    </div>
+  )
 
   if (p === null) return <div className="spinner">Loading progress…</div>
 
@@ -17,10 +30,9 @@ export default function Progress() {
       <h2 className="section-title">Your Progress</h2>
 
       <div className="card" style={{ marginBottom: 20 }}>
-        {/* REQ-18: progress displayed to the user */}
         <div className="bar-row">
           <div className="lbl">
-            <span>Tasks completed (REQ-16)</span>
+            <span>Tasks completed</span>
             <span>{p.completedTasks}/{p.totalTasks}</span>
           </div>
           <div className="progress-bar"><span style={{ width: `${p.completionRate}%` }} /></div>
@@ -53,9 +65,9 @@ export default function Progress() {
               .reverse()
               .map((s) => (
                 <div className="score-line" key={s.id}>
-                  <span>{s.quizTitle}</span>
+                  <span>{s.quiz_title || s.quizTitle}</span>
                   <span className="muted">
-                    {s.score}/{s.total} · {new Date(s.takenAt).toLocaleDateString()}
+                    {s.score}/{s.total} · {new Date(s.taken_at || s.takenAt).toLocaleDateString()}
                   </span>
                 </div>
               ))}

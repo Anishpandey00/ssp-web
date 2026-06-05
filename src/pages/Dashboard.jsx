@@ -14,14 +14,19 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    getProgress(user.id).then((res) => setStats(res.progress))
+    getProgress(user.id)
+      .then((res) => {
+        if (res.ok) setStats(res.progress)
+        else setError(res.error || 'Failed to load dashboard stats.')
+      })
+      .catch(() => setError('Network error. Is the backend server running?'))
   }, [user.id])
 
   return (
     <div>
-      {/* REQ-5: greeting message */}
       <h1 className="greeting">
         {timeGreeting()}, <span className="accent">{user.name.split(' ')[0]}</span>.
       </h1>
@@ -29,6 +34,8 @@ export default function Dashboard() {
         Your study space is ready. Organise tasks, test yourself with quizzes,
         and watch your progress build over time.
       </p>
+
+      {error && <p className="error">{error}</p>}
 
       <button className="btn btn-primary begin-btn" onClick={() => navigate('/tasks')}>
         Plan today&rsquo;s tasks →

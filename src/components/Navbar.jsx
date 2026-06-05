@@ -12,7 +12,7 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="brand">
+      <div className="brand" style={{ cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
         <span className="dot" />
         Smart Study Planner
       </div>
