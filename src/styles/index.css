@@ -237,7 +237,7 @@ a { color: inherit; }
   transition: all 0.15s ease;
 }
 .opt:hover { border-color: var(--accent); }
-.opt.selected { border-color: var(--accent); background: rgba(200,85,46,0.08); }
+.opt.selected { border-color: var(--accent); background: rgba(48, 118, 45, 0.10); }
 .opt.correct { border-color: var(--olive); background: rgba(107,122,79,0.12); }
 .opt.wrong { border-color: var(--accent); background: rgba(200,85,46,0.12); }
 .progress-bar { height: 8px; background: var(--paper-2); border-radius: 999px; overflow: hidden; margin-bottom: 22px; }

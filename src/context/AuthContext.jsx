@@ -11,7 +11,11 @@ export function AuthProvider({ children }) {
     const raw = sessionStorage.getItem(SESSION_KEY)
     if (raw) {
       try {
-        setUser(JSON.parse(raw))
+        const parsed = JSON.parse(raw)
+        if (parsed.token && parsed.id) {
+          const { token, ...u } = parsed
+          setUser(u)
+        }
       } catch {
         sessionStorage.removeItem(SESSION_KEY)
       }
@@ -19,9 +23,9 @@ export function AuthProvider({ children }) {
     setReady(true)
   }, [])
 
-  function login(u) {
+  function login(u, token) {
     setUser(u)
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(u))
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...u, token }))
   }
 
   function logout() {
