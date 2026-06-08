@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
+
 const Page = styled.div`
   min-height: 100vh;
   display: flex;

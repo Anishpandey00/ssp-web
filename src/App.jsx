@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Tasks from './pages/Tasks.jsx'
 import Quiz from './pages/Quiz.jsx'
 import Progress from './pages/Progress.jsx'
+import Admin from './pages/Admin.jsx'
 
 export default function App() {
   return (
@@ -22,6 +23,9 @@ export default function App() {
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/quiz" element={<Quiz />} />
             <Route path="/progress" element={<Progress />} />
+          </Route>
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route path="/admin" element={<Admin />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

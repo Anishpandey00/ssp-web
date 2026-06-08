@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+
+  # ── PostgreSQL database ──────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: ssp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ssp_password
+      POSTGRES_DB: smart_study_planner
+    volumes:
+      - ssp-db-data:/var/lib/postgresql/data   # data persists between restarts
+    ports:
+      - "5432:5432"   # optional: remove if you don't want DB exposed to host
+
+  # ── Smart Study Planner app (React + Express) ────────────────────────────────
+  app:
+    build: .
+    container_name: ssp-app
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PORT: 4000
+      DB_HOST: db          # 'db' = the service name above (Docker internal DNS)
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ssp_password
+      DB_NAME: smart_study_planner
+      JWT_SECRET: ssp_super_secret_jwt_key_change_this_in_production
+    ports:
+      - "4000:4000"        # website is at http://<your-ip>:4000
+
+volumes:
+  ssp-db-data:
