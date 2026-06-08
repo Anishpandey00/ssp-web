@@ -8,11 +8,15 @@ export default defineConfig({
     host: true,
     open: true,
     proxy: {
+      // In dev mode: proxy /api to local Express server
       "/api": {
         target: "http://localhost:4000",
         changeOrigin: true,
         headers: { "bypass-tunnel-reminder": "true" },
       },
     },
+  },
+  build: {
+    outDir: "dist",
   },
 });

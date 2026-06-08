@@ -78,3 +78,42 @@ export async function saveScore(userId, score) {
 export async function getProgress(userId) {
   return request(`progress/${encodeURIComponent(userId)}`);
 }
+
+// ── Admin API ─────────────────────────────────────────────────────────────────
+export async function adminGetQuizzes() {
+  return request("admin/quizzes");
+}
+
+export async function adminCreateQuiz(data) {
+  return request("admin/quizzes", { method: "POST", body: data });
+}
+
+export async function adminUpdateQuiz(quizId, data) {
+  return request(`admin/quizzes/${encodeURIComponent(quizId)}`, { method: "PUT", body: data });
+}
+
+export async function adminDeleteQuiz(quizId) {
+  return request(`admin/quizzes/${encodeURIComponent(quizId)}`, { method: "DELETE" });
+}
+
+export async function adminAddQuestion(quizId, data) {
+  return request(`admin/quizzes/${encodeURIComponent(quizId)}/questions`, {
+    method: "POST",
+    body: data,
+  });
+}
+
+export async function adminDeleteQuestion(quizId, questionId) {
+  return request(
+    `admin/quizzes/${encodeURIComponent(quizId)}/questions/${encodeURIComponent(questionId)}`,
+    { method: "DELETE" }
+  );
+}
+
+export async function adminGetUsers() {
+  return request("admin/users");
+}
+
+export async function adminToggleAdmin(userId) {
+  return request(`admin/users/${encodeURIComponent(userId)}/toggle-admin`, { method: "PATCH" });
+}
