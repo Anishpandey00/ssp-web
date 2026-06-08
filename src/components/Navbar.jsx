@@ -22,6 +22,11 @@ export default function Navbar() {
           <NavLink to="/tasks">Tasks</NavLink>
           <NavLink to="/quiz">Quiz</NavLink>
           <NavLink to="/progress">Progress</NavLink>
+          {user.isAdmin && (
+            <NavLink to="/admin" className={({ isActive }) => isActive ? 'active admin-link' : 'admin-link'}>
+              ⚙ Admin
+            </NavLink>
+          )}
           <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
             Log out
           </button>
