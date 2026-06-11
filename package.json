@@ -1,0 +1,33 @@
+{
+  "name": "smart-study-planner",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Smart Study Planner web app (React + mock backend) — SRS implementation",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server/index.js",
+    "start": "node server/index.js",
+    "share": "concurrently \"node server/index.js\" \"vite\" \"lt --port 5173 --subdomain ssp-web-app\" --handle-input",
+    "tunnel": "lt --port 5173 --subdomain ssp-web-app --local-host localhost"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.21.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
+    "styled-components": "^6.4.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^10.0.3",
+    "localtunnel": "^2.0.2",
+    "vite": "^5.4.8"
+  }
+}
