@@ -5,3 +5,8 @@ dist/
 .DS_Store
 .vite/
 *.local
+
+# Local credentials and assistant settings
+.env.*
+!.env.example
+.claude/
