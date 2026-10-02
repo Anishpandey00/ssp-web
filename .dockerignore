@@ -7,3 +7,7 @@ dist
 .git
 .gitignore
 README.md
+
+.env.*
+.claude
+.DS_Store
