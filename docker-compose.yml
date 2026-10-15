@@ -34,7 +34,7 @@ services:
       DB_NAME: ${DB_NAME:-smart_study_planner}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
     ports:
-      - "${PORT:-4000}:4000"
+      - "${PORT:-8080}:4000"
 
 volumes:
   ssp-db-data:
