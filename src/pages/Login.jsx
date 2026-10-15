@@ -5,11 +5,23 @@ import { loginUser } from "../api/backend.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const Page = styled.div`
-  min-height: 100vh;
+  min-height: calc(100vh - 56px);
+  width: min(1120px, calc(100% - 48px));
+  margin: 28px auto;
+  border-radius: 24px;
+  border: 1px solid #ffffff85;
+  overflow: hidden;
+  box-shadow: 0 26px 70px -42px rgba(29, 27, 46, .5);
+  @media (max-width: 600px) {
+    width: calc(100% - 24px);
+    min-height: calc(100vh - 24px);
+    margin: 12px auto;
+    border-radius: 20px;
+  }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e9e3fb;
+  background: var(--paper);
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
   padding: 1.5rem;
 `;
@@ -19,15 +31,15 @@ const Card = styled.div`
   max-width: 440px;
   background: #ffffff;
   border-radius: 20px;
-  padding: 2.5rem;
-  box-shadow: 0 18px 40px rgba(80, 60, 140, 0.18);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  box-shadow: 0 12px 36px -24px rgba(29, 27, 46, 0.28);
 `;
 
 const Logo = styled.div`
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: #2e7d32;
+  border-radius: 13px;
+  background: var(--accent);
   color: #fff;
   display: flex;
   align-items: center;
@@ -38,13 +50,15 @@ const Logo = styled.div`
 
 const Title = styled.h1`
   font-size: 2rem;
-  font-weight: 700;
-  color: #1a1a1a;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  font-weight: 650;
+  color: var(--ink);
   margin: 0 0 0.4rem;
 `;
 
 const Subtitle = styled.p`
-  color: #555;
+  color: var(--ink-soft);
   margin: 0 0 1.8rem;
   font-size: 1rem;
 `;
@@ -60,16 +74,16 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   box-sizing: border-box;
-  background: #f0ecfb;
+  background: #fcfbff;
   border: 1px solid ${(p) => (p.$error ? "#d32f2f" : "transparent")};
-  border-radius: 10px;
+  border-radius: 13px;
   padding: 0.85rem 1rem;
   font-size: 1rem;
-  outline: none;
+  line-height: 1.5;
   transition: border 0.15s ease, box-shadow 0.15s ease;
 
   &:focus {
-    border-color: #2e7d32;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
   }
 `;
@@ -81,11 +95,12 @@ const PasswordWrap = styled.div`
 const ToggleBtn = styled.button`
   position: absolute;
   top: 50%;
+  min-height: 40px;
   right: 0.6rem;
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: #2e7d32;
+  color: var(--accent);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -107,11 +122,11 @@ const Field = styled.div`
 
 const LoginBtn = styled.button`
   width: 100%;
-  background: #2e7d32;
+  background: var(--accent);
   color: #fff;
   border: none;
   padding: 0.95rem;
-  border-radius: 10px;
+  border-radius: 13px;
   font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
@@ -119,19 +134,19 @@ const LoginBtn = styled.button`
   transition: transform 0.15s ease, background 0.15s ease;
 
   &:hover {
-    background: #276a2a;
-    transform: translateY(-2px);
+    background: var(--accent-dark);
+    box-shadow: 0 6px 14px -8px rgba(48, 118, 45, 0.35);
   }
 `;
 
 const SignupLine = styled.p`
   text-align: center;
-  color: #555;
+  color: var(--ink-soft);
   margin-top: 1.4rem;
   font-size: 0.95rem;
 
   a {
-    color: #2e7d32;
+    color: var(--accent);
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;

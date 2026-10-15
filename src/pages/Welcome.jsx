@@ -3,10 +3,22 @@ import { useNavigate } from "react-router-dom";
 
 
 const Page = styled.div`
-  min-height: 100vh;
+  min-height: calc(100vh - 56px);
+  width: min(1120px, calc(100% - 48px));
+  margin: 28px auto;
+  border-radius: 24px;
+  border: 1px solid #ffffff85;
+  overflow: hidden;
+  box-shadow: 0 26px 70px -42px rgba(29, 27, 46, .5);
+  @media (max-width: 600px) {
+    width: calc(100% - 24px);
+    min-height: calc(100vh - 24px);
+    margin: 12px auto;
+    border-radius: 20px;
+  }
   display: flex;
   flex-direction: column;
-  background: #e9e3fb;
+  background: var(--paper);
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
 `;
 
@@ -14,9 +26,9 @@ const Nav = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 3rem;
-  background: #ffffff;
-  border-bottom: 1px solid #ddd4f3;
+  padding: 1.5rem 2rem;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
 `;
 
 const Brand = styled.div`
@@ -24,7 +36,7 @@ const Brand = styled.div`
   align-items: center;
   gap: 0.6rem;
   font-weight: 600;
-  color: #2a2a2a;
+  color: var(--ink);
   font-size: 1.1rem;
 `;
 
@@ -32,7 +44,7 @@ const Logo = styled.div`
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #2e7d32;
+  background: var(--accent);
   color: #fff;
   display: flex;
   align-items: center;
@@ -70,8 +82,8 @@ const Content = styled.div`
 
 const Badge = styled.span`
   align-self: flex-start;
-  background: #ffffff;
-  color: #2e7d32;
+  background: transparent;
+  color: var(--accent);
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.35rem 0.85rem;
@@ -81,16 +93,17 @@ const Badge = styled.span`
 `;
 
 const Title = styled.h1`
-  font-size: clamp(2.2rem, 5vw, 3.2rem);
-  font-weight: 700;
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  letter-spacing: -0.045em;
+  font-weight: 650;
   line-height: 1.1;
-  color: #1a1a1a;
+  color: var(--ink);
   margin: 0;
 `;
 
 const Subtitle = styled.p`
   font-size: 1.1rem;
-  color: #444;
+  color: var(--ink-soft);
   line-height: 1.6;
   margin: 0;
   max-width: 460px;
@@ -99,17 +112,18 @@ const Subtitle = styled.p`
 const Actions = styled.div`
   display: flex;
   gap: 0.85rem;
+  flex-wrap: wrap;
   margin-top: 0.5rem;
 
   @media (max-width: 860px) { justify-content: center; }
 `;
 
 const PrimaryBtn = styled.button`
-  background: #2e7d32;
+  background: var(--accent);
   color: #fff;
   border: none;
   padding: 0.9rem 1.7rem;
-  border-radius: 10px;
+  border-radius: 13px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -119,15 +133,15 @@ const PrimaryBtn = styled.button`
   transition: transform 0.15s ease, background 0.15s ease;
 
   &:hover {
-    background: #276a2a;
-    transform: translateY(-2px);
+    background: var(--accent-dark);
+    box-shadow: 0 6px 14px -8px rgba(48, 118, 45, 0.35);
   }
 `;
 
 const ImageWrap = styled.div`
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 18px 40px rgba(80, 60, 140, 0.18);
+  box-shadow: 0 12px 36px -24px rgba(29, 27, 46, 0.28);
 `;
 
 const HeroImg = styled.img`
@@ -143,18 +157,18 @@ const Footer = styled.footer`
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 1.2rem 3rem;
-  background: #ffffff;
-  border-top: 1px solid #ddd4f3;
+  padding: 1.2rem 2rem;
+  background: transparent;
+  border-top: 1px solid var(--line);
   font-size: 0.85rem;
-  color: #777;
+  color: var(--ink-soft);
 `;
 
 const FooterLinks = styled.nav`
   display: flex;
   gap: 1.3rem;
-  a { color: #777; text-decoration: none; }
-  a:hover { color: #2e7d32; }
+  a { color: var(--ink-soft); text-decoration: none; }
+  a:hover { color: var(--accent); }
 `;
 
 export default function Welcome() {
