@@ -4,12 +4,12 @@ A web-based study planner built with **React + Vite**, implementing the
 Software Requirements Specification (SRS). Students can register/log in, manage
 study tasks, take quizzes, and track their progress.
 
-The backend is an Express REST API backed by PostgreSQL. In Docker, the backend
-and database run in separate containers; Express also serves the built React frontend.
+Docker runs three separate containers: an Nginx frontend serving React, an
+Express REST API backend, and a PostgreSQL database.
 
 ## Tech stack
 
-- React 18 + Vite
+- React 18 + Vite, served by Nginx in Docker
 - Express + PostgreSQL 16
 - React Router for navigation
 - Fonts: Fraunces (display) + Outfit (body)
@@ -23,20 +23,36 @@ cp .env.example .env
 ```
 
 Edit `.env` to set `DB_PASSWORD` and a long random `JWT_SECRET`. If `.env` already
-exists, update it instead of overwriting it. Then start both containers:
+exists, update it instead of overwriting it. Then build and start all three containers:
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build --wait
 docker compose ps
 ```
 
-Open http://localhost:4000 (or the host port configured by `PORT` in `.env`).
+Open http://localhost:3000 (or the host port configured by `FRONTEND_PORT` in `.env`).
+Set `FRONTEND_PORT` in `.env` to change the frontend address. It defaults to 3000
+and is independent of `PORT`, which controls the backend during local development.
+Save `.env`, then run `docker compose up -d --wait` to apply a port change; no rebuild
+is needed for port changes.
 
-- `ssp-backend`: Express API and built React frontend on container port 4000.
-- `ssp-db`: PostgreSQL on container port 5432, reachable by the backend at `db`.
+| Container | Purpose | Address |
+| --- | --- | --- |
+| `ssp-frontend` | Nginx serves React and forwards `/api/...` requests to Express. | http://localhost:3000 by default; container port 80 |
+| `ssp-backend` | Express API for accounts, tasks, quizzes, and progress. | http://localhost:9001/api/health by default; container port 4000 |
+| `ssp-db` | PostgreSQL stores application data. | Internal `db:5432`; no published host port |
+
+If Docker reports that a host port is already allocated, set `FRONTEND_PORT` or
+`BACKEND_PORT` in `.env` to an available port, then rerun `docker compose up -d --wait`.
 
 Compose waits for PostgreSQL to become healthy before starting the backend.
+It then waits for the backend health check before starting the frontend.
 Database tables and initial quizzes are created automatically on backend startup.
+For a new database, optionally set both `ADMIN_EMAIL` and `ADMIN_PASSWORD` in
+`.env` before starting. Use a unique password of at least 12 characters. No default
+administrator password is created. Existing administrator accounts are preserved.
+The frontend calls `/api` on its own origin; Nginx forwards these requests to
+`http://backend:4000` on the Docker network. The backend does not serve frontend files.
 The database is accessible inside the Docker network; it does not publish a host port.
 Data persists in the `ssp-db-data` volume, including after containers are stopped.
 For an existing volume, keep its original database credentials: changing `.env`
@@ -44,7 +60,10 @@ does not change the password stored in PostgreSQL.
 
 ```bash
 # View logs
-docker compose logs -f backend db
+docker compose logs -f frontend backend db
+
+# Check the frontend-to-backend connection (use your configured frontend port)
+curl http://localhost:3000/api/health
 
 # Open a database shell
 docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
@@ -67,7 +86,27 @@ npm run dev
 ```
 
 Vite serves the frontend at http://localhost:5173 and proxies `/api` to port 4000.
-For production, `npm run build` generates the frontend that Express serves.
+For a production build, `npm run build` generates `dist`. In Docker, the frontend
+image copies this output into Nginx; the backend image contains only the API and
+database seed data. `npm run preview` can preview a standalone frontend build,
+but use `npm run dev` or the Docker stack for the configured API proxy.
+
+## Azure demonstration
+
+See [the Azure demo guide](docs/deployment/azure-demo.md) for a small VM deployment,
+HTTPS setup, and cost controls. The separate `deploy/azure/compose.yaml` keeps the
+API and database private. Local Docker commands and port settings are unchanged.
+
+## Verification
+
+```bash
+npm test
+npm run build
+docker compose config --quiet
+```
+
+GitHub Actions runs these source checks on pushes and pull requests. Passing them
+does not replace checking the running containers and the application's main flows.
 
 ## How to use
 
@@ -77,22 +116,46 @@ For production, `npm run build` generates the frontend that Express serves.
 
 ## Project structure
 
-```
+```text
 ssp-web/
-├── index.html
-├── package.json
-├── vite.config.js
-├── .vscode/                  editor settings + extension recommendations
-└── src/
-    ├── main.jsx              app entry
-    ├── App.jsx               routes
-    ├── api/backend.js        REST API client
-    ├── context/AuthContext.jsx
-    ├── components/           Navbar, ProtectedRoute
-    ├── data/quizzes.js       seeded quiz questions
-    ├── pages/                Login, Dashboard, Tasks, Quiz, Progress
-    └── styles/index.css      design system
+├── .github/workflows/        automated project checks
+├── deploy/azure/            cloud Compose configuration and HTTPS example
+├── docs/
+│   ├── deployment/          Azure demonstration instructions
+│   ├── presentations/       UI mockups and final presentation
+│   └── reports/             thesis and team submission links
+├── public/                  static images
+├── scripts/                 repository maintenance scripts
+├── server/
+│   ├── index.js             Express API routes and startup
+│   ├── db.js                database connection and initialization
+│   ├── admin-seed.js        optional administrator creation
+│   └── data/quizzes.js      initial quiz data
+├── src/
+│   ├── main.jsx             React entry point
+│   ├── App.jsx              page routes
+│   ├── api/backend.js       REST API client
+│   ├── context/             authentication state
+│   ├── components/          shared interface components
+│   ├── pages/               student and admin pages
+│   └── styles/              shared styles
+├── tests/                   administrator initialization regression tests
+├── .env.example             configuration template; copy to .env
+├── Dockerfile               Express backend image
+├── Dockerfile.frontend      React build + Nginx frontend image
+├── docker-compose.yml       frontend, backend, and database services
+├── nginx.conf               frontend serving and API proxy
+├── index.html               frontend HTML entry
+├── package.json             dependencies and commands
+├── package-lock.json        dependency lockfile
+├── Procfile                 backend process for compatible hosting
+├── vite.config.js           frontend build and development settings
+└── README.md                setup and project guide
 ```
+
+The two UI mockup presentations are retained as separate versions:
+`SSP_UI_Mockup_All_Pages.pptx` and `SSP_UI_Mockup_Alternative.pptx`.
+Their contents differ; neither was discarded.
 
 ## SRS requirements traceability
 

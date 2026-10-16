@@ -10,3 +10,13 @@ dist/
 .env.*
 !.env.example
 .claude/
+
+# Credentials and local deployment artifacts
+*.pem
+*.key
+*.pfx
+*.p12
+*.log
+.azure/
+coverage/
+.vercel

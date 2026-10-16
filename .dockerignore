@@ -11,3 +11,10 @@ README.md
 .env.*
 .claude
 .DS_Store
+*.pem
+*.key
+*.pfx
+*.p12
+*.log
+.azure
+coverage

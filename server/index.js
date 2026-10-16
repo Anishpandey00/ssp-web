@@ -3,13 +3,7 @@ import bcrypt from "bcrypt";
 import express from "express";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "crypto";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import { existsSync } from "fs";
 import { query, initDb } from "./db.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -53,6 +47,15 @@ function requireAdmin(req, res, next) {
 }
 
 // ── Public routes ─────────────────────────────────────────────────────────────
+app.get("/api/health", async (req, res) => {
+  try {
+    await query("SELECT 1");
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ ok: false });
+  }
+});
+
 app.post("/api/register", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
@@ -328,19 +331,6 @@ app.patch("/api/admin/users/:userId/toggle-admin", requireAuth, requireAdmin, as
   if (result.rows.length === 0) return res.json({ ok: false, error: "User not found." });
   return res.json({ ok: true, user: result.rows[0] });
 });
-
-// ── Serve React build (when running via Docker / production) ──────────────────
-const distPath = join(__dirname, "../dist");
-if (existsSync(distPath)) {
-  app.use(express.static(distPath));
-  // For any non-API route, return the React index.html (SPA routing)
-  app.get("*", (req, res) => {
-    if (!req.path.startsWith("/api")) {
-      res.sendFile(join(distPath, "index.html"));
-    }
-  });
-  console.log("Serving React build from /dist");
-}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 initDb()

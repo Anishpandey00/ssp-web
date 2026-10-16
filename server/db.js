@@ -1,4 +1,5 @@
 import pg from "pg";
+import { seedAdmin } from "./admin-seed.js";
 
 const { Pool } = pg;
 
@@ -75,24 +76,12 @@ export async function initDb() {
     )
   `);
 
-  // Seed default admin account if no admin exists
-  const adminCheck = await query("SELECT id FROM users WHERE is_admin = TRUE LIMIT 1");
-  if (adminCheck.rows.length === 0) {
-    const { randomUUID } = await import("crypto");
-    const bcrypt = await import("bcrypt");
-    const adminId = randomUUID();
-    const hashedPassword = await bcrypt.default.hash("Admin@1234", 10);
-    await query(
-      "INSERT INTO users (id, name, email, password, is_admin) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING",
-      [adminId, "Admin", "admin@ssp.com", hashedPassword, true]
-    );
-    console.log("Default admin created → email: admin@ssp.com  password: Admin@1234");
-  }
+  await seedAdmin(query);
 
   // Seed quizzes from static data if DB is empty
   const existing = await query("SELECT COUNT(*) FROM quizzes");
   if (parseInt(existing.rows[0].count, 10) === 0) {
-    const { QUIZZES } = await import("../src/data/quizzes.js");
+    const { QUIZZES } = await import("./data/quizzes.js");
     const { randomUUID } = await import("crypto");
     for (const quiz of QUIZZES) {
       const quizId = quiz.id || randomUUID();
