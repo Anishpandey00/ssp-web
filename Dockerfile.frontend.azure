@@ -1,0 +1,18 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+COPY index.html vite.config.js ./
+COPY public ./public
+COPY src ./src
+RUN npm run build
+
+FROM nginx:stable-alpine
+
+# Use nginx's built-in template engine to inject BACKEND_URL at container start
+COPY nginx.azure.conf /etc/nginx/templates/default.conf.template
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
