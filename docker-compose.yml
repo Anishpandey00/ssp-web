@@ -9,6 +9,10 @@ services:
       POSTGRES_DB: ${DB_NAME:-smart_study_planner}
     volumes:
       - ssp-db-data:/var/lib/postgresql/data
+    # Only on the private back-end network: no published port, so nothing
+    # outside Docker (and not even the frontend) can reach the database.
+    networks:
+      - backend-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -25,6 +29,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Joins both networks: talks to the frontend on one and the database on
+    # the other. "db" below is resolved by Docker's built-in DNS.
+    networks:
+      - frontend-net
+      - backend-net
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -55,6 +64,9 @@ services:
       backend:
         condition: service_healthy
         restart: true
+    # nginx forwards /api/ to http://backend:4000 over this network.
+    networks:
+      - frontend-net
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     healthcheck:
@@ -63,6 +75,17 @@ services:
       timeout: 5s
       retries: 12
       start_period: 5s
+
+networks:
+  # Browser-facing side: frontend <-> backend.
+  frontend-net:
+    name: ssp-frontend-net
+    driver: bridge
+  # Private data side: backend <-> db. internal: no route to the internet.
+  backend-net:
+    name: ssp-backend-net
+    driver: bridge
+    internal: true
 
 volumes:
   ssp-db-data:
