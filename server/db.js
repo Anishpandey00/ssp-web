@@ -6,13 +6,18 @@ const { Pool } = pg;
 const isRemoteDb =
   process.env.DB_HOST && !process.env.DB_HOST.match(/^(localhost|127\.|db)$/);
 
+// DB_SSL=true|false overrides the host-based guess (e.g. a Postgres container
+// reached by its Container App name has no SSL).
+const useSsl =
+  process.env.DB_SSL !== undefined ? process.env.DB_SSL === "true" : isRemoteDb;
+
 const pool = new Pool({
   user: process.env.DB_USER || "postgres",
   host: process.env.DB_HOST || "localhost",
   database: process.env.DB_NAME || "smart_study_planner",
   password: process.env.DB_PASSWORD,
   port: Number(process.env.DB_PORT) || 5432,
-  ...(isRemoteDb && { ssl: { rejectUnauthorized: false } }),
+  ...(useSsl && { ssl: { rejectUnauthorized: false } }),
 });
 
 export function query(text, params) {
