@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getProgress, getTasks, addTask, toggleTask, deleteTask } from '../api/backend.js'
-import { dueDateError, dueDateLimits } from '../utils/dueDate.js'
+import { getProgress } from '../api/backend.js'
+import { dueDateLimits } from '../utils/dueDate.js'
+import { EMPTY_TASK, compareTasks } from '../utils/tasks.js'
+import { useTasks } from '../hooks/useTasks.js'
+import TaskRow from '../components/TaskRow.jsx'
 
 function getGreeting(date) {
   const h = date.getHours()
@@ -19,7 +22,6 @@ function formatTime(date) {
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
-const EMPTY = { title: '', subject: '', dueDate: '', priority: 'MEDIUM' }
 const PRIORITY_COLOR = { HIGH: '#7b4fb4', MEDIUM: '#c89b3c', LOW: '#30762d' }
 
 export default function Dashboard() {
@@ -27,10 +29,11 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [now, setNow] = useState(new Date())
   const [stats, setStats] = useState(null)
-  const [tasks, setTasks] = useState(null)
-  const [form, setForm] = useState(EMPTY)
+  const { tasks, loadError, add, toggle, remove } = useTasks(user.id)
+  const [form, setForm] = useState(EMPTY_TASK)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [statsError, setStatsError] = useState('')
 
   useEffect(() => {
@@ -44,13 +47,6 @@ export default function Dashboard() {
         if (res.ok) setStats(res.progress)
         else setStatsError(res.error || 'Failed to load stats.')
       })
-      .catch(() => setStatsError('Backend offline.'))
-
-    getTasks(user.id)
-      .then((res) => {
-        if (res.ok) setTasks(res.tasks)
-      })
-      .catch(() => {})
   }, [user.id])
 
   function update(key, value) {
@@ -59,33 +55,23 @@ export default function Dashboard() {
 
   async function handleQuickAdd(e) {
     e.preventDefault()
-    if (!form.title.trim()) return
-    const dateError = dueDateError(form.dueDate)
-    if (dateError) return setError(dateError)
-    setError('')
-    const res = await addTask(user.id, form)
+    if (saving) return
+    setSaving(true)
+    const res = await add(form)
+    setSaving(false)
     if (res.ok) {
-      setTasks((t) => [...(t || []), res.task])
-      setForm(EMPTY)
+      setError('')
+      setForm(EMPTY_TASK)
       setShowForm(false)
     } else {
-      setError(res.error || 'Failed to add task.')
+      setError(res.error)
     }
   }
 
-  async function handleToggle(id) {
-    const res = await toggleTask(user.id, id)
-    if (res.ok) setTasks([...res.tasks])
-  }
-
-  async function handleDelete(id) {
-    const res = await deleteTask(user.id, id)
-    if (res.ok) setTasks(res.tasks)
-  }
-
-  const pendingTasks = tasks ? tasks.filter((t) => !t.completed) : []
+  const pendingTasks = tasks ? tasks.filter((t) => !t.completed).sort(compareTasks) : []
   const completedTasks = tasks ? tasks.filter((t) => t.completed) : []
-  const recentScores = stats?.scores?.slice().reverse().slice(0, 3) || []
+  // The server returns scores newest first.
+  const recentScores = stats?.scores?.slice(0, 3) || []
 
   const completionRate = tasks && tasks.length > 0
     ? Math.round((completedTasks.length / tasks.length) * 100)
@@ -143,7 +129,7 @@ export default function Dashboard() {
         <div className="dash-panel">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Today's Tasks</h2>
+              <h2 className="panel-title">Up next</h2>
               <p className="panel-sub">
                 {pendingTasks.length} pending · {completedTasks.length} done
               </p>
@@ -156,15 +142,18 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {error && <p className="error" style={{ marginBottom: 12 }}>{error}</p>}
+          {(error || loadError) && (
+            <p className="error" role="alert" style={{ marginBottom: 12 }}>{error || loadError}</p>
+          )}
 
           {showForm && (
-            <form className="quick-form" onSubmit={handleQuickAdd}>
+            <form className="quick-form" onSubmit={handleQuickAdd} noValidate>
               <input
                 className="quick-input"
                 value={form.title}
                 onChange={(e) => update('title', e.target.value)}
                 placeholder="Task title…"
+                maxLength={300}
                 autoFocus
               />
               <div className="quick-row">
@@ -190,13 +179,15 @@ export default function Dashboard() {
                   <option value="MEDIUM">Medium</option>
                   <option value="LOW">Low</option>
                 </select>
-                <button type="submit" className="btn btn-primary btn-sm">Add</button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+                  {saving ? 'Adding…' : 'Add'}
+                </button>
               </div>
             </form>
           )}
 
           {tasks === null ? (
-            <p className="muted spinner-inline">Loading tasks…</p>
+            !loadError && <p className="muted spinner-inline">Loading tasks…</p>
           ) : pendingTasks.length === 0 ? (
             <div className="empty-state">
               <span className="empty-icon">🎉</span>
@@ -205,12 +196,7 @@ export default function Dashboard() {
           ) : (
             <div className="dash-task-list">
               {pendingTasks.slice(0, 6).map((t) => (
-                <DashTask
-                  key={t.id}
-                  task={t}
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
-                />
+                <TaskRow key={t.id} task={t} variant="dash" onToggle={toggle} onDelete={remove} />
               ))}
               {pendingTasks.length > 6 && (
                 <button className="see-more" onClick={() => navigate('/tasks')}>
@@ -224,12 +210,7 @@ export default function Dashboard() {
             <div className="completed-section">
               <p className="completed-label">Completed</p>
               {completedTasks.slice(0, 3).map((t) => (
-                <DashTask
-                  key={t.id}
-                  task={t}
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
-                />
+                <TaskRow key={t.id} task={t} variant="dash" onToggle={toggle} onDelete={remove} />
               ))}
             </div>
           )}
@@ -325,31 +306,6 @@ function StatCard({ value, label, icon, onClick, accent }) {
       <div className="stat-value">{value}</div>
       <div className="stat-label">{label}</div>
     </button>
-  )
-}
-
-function DashTask({ task: t, onToggle, onDelete }) {
-  return (
-    <div className={`dash-task-item ${t.completed ? 'done' : ''}`}>
-      <div
-        className={`task-check ${t.completed ? 'on' : ''}`}
-        onClick={() => onToggle(t.id)}
-        role="button"
-        aria-label="toggle complete"
-      >
-        {t.completed ? '✓' : ''}
-      </div>
-      <div className="dash-task-body">
-        <div className="task-title">{t.title}</div>
-        {(t.subject || t.due_date) && (
-          <div className="task-meta">
-            {t.subject}{t.due_date ? ` · due ${t.due_date}` : ''}
-          </div>
-        )}
-      </div>
-      <span className={`pill ${t.priority}`}>{t.priority}</span>
-      <button className="icon-btn" onClick={() => onDelete(t.id)} aria-label="delete">✕</button>
-    </div>
   )
 }
 

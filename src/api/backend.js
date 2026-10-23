@@ -1,34 +1,51 @@
+import { readSession, clearSession } from "../utils/session.js";
+
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+export const SESSION_EXPIRED_EVENT = "ssp:session-expired";
 
 function getToken() {
-  try {
-    const raw = sessionStorage.getItem("ssp_session");
-    return raw ? JSON.parse(raw).token || null : null;
-  } catch {
-    return null;
-  }
+  return readSession()?.token || null;
 }
 
+// Never throws: every failure comes back as { ok: false, error } with a
+// message the page can show as is.
 async function request(path, options = {}) {
   const token = getToken();
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}/${path}`, {
-    headers,
-    ...options,
-    body: options.body && JSON.stringify(options.body),
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: "Network error" };
-  }
-
+  let res;
   try {
-    return await res.json();
+    res = await fetch(`${BASE_URL}/${path}`, {
+      headers,
+      ...options,
+      body: options.body && JSON.stringify(options.body),
+    });
   } catch {
-    return { ok: false, error: "Invalid server response" };
+    return { ok: false, error: "Can't reach the server. Check your connection and try again." };
   }
+
+  if (res.status === 401 && token) {
+    clearSession();
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    return { ok: false, error: "Your session has expired. Please log in again." };
+  }
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    // fall through
+  }
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: data?.error || (res.status >= 500
+        ? "The server had a problem. Please try again."
+        : "Request failed. Please try again."),
+    };
+  }
+  return data ?? { ok: false, error: "Invalid server response." };
 }
 
 export async function registerUser(form) {
@@ -50,6 +67,13 @@ export async function addTask(userId, task) {
   });
 }
 
+export async function updateTask(userId, taskId, task) {
+  return request(`tasks/${encodeURIComponent(userId)}/${encodeURIComponent(taskId)}`, {
+    method: "PUT",
+    body: task,
+  });
+}
+
 export async function toggleTask(userId, taskId) {
   return request(
     `tasks/${encodeURIComponent(userId)}/${encodeURIComponent(taskId)}/toggle`,
@@ -60,7 +84,8 @@ export async function toggleTask(userId, taskId) {
 export async function deleteTask(userId, taskId) {
   return request(
     `tasks/${encodeURIComponent(userId)}/${encodeURIComponent(taskId)}`,
-    { method: "DELETE" }
+    // keepalive lets an undo-delayed delete finish even if the tab is closing.
+    { method: "DELETE", keepalive: true }
   );
 }
 

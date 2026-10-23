@@ -154,14 +154,25 @@ const SignupLine = styled.p`
   a:hover { text-decoration: underline; }
 `;
 
+const RememberRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -0.25rem 0 1rem;
+  font-size: 0.85rem;
+  color: #5b5775;
+  label { cursor: pointer; }
+`;
+
 export default function Login() {
   const navigate = useNavigate();
-  const { user, login } = useAuth();
+  const { user, login, expired } = useAuth();
 
   useEffect(() => { if (user) navigate('/dashboard') }, [user]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -194,7 +205,7 @@ export default function Login() {
       setServerError(res.error || "Login failed.");
       return;
     }
-    login(res.user, res.token);
+    login(res.user, res.token, remember);
     navigate("/dashboard");
   };
 
@@ -204,6 +215,10 @@ export default function Login() {
         <Logo>📚</Logo>
         <Title>Welcome back</Title>
         <Subtitle>Log in to plan your study sessions.</Subtitle>
+
+        {expired && (
+          <p className="notification" role="status">Your session has expired. Please log in again.</p>
+        )}
 
         <Field>
           <Label htmlFor="email">Email</Label>
@@ -239,6 +254,16 @@ export default function Login() {
           </PasswordWrap>
           {errors.password && <ErrorMsg>{errors.password}</ErrorMsg>}
         </Field>
+
+        <RememberRow>
+          <input
+            id="remember"
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <label htmlFor="remember">Keep me logged in on this device</label>
+        </RememberRow>
 
         {serverError && <ErrorMsg style={{ marginBottom: "0.5rem" }}>{serverError}</ErrorMsg>}
         <LoginBtn onClick={handleLogin} disabled={loading}>

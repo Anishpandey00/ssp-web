@@ -1,40 +1,46 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { readSession, saveSession, clearSession } from '../utils/session.js'
+import { SESSION_EXPIRED_EVENT } from '../api/backend.js'
 
 const AuthContext = createContext(null)
-const SESSION_KEY = 'ssp_session'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [ready, setReady] = useState(false)
+  // True after the server rejected an old login, so the login page can say why.
+  const [expired, setExpired] = useState(false)
 
   useEffect(() => {
-    const raw = sessionStorage.getItem(SESSION_KEY)
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw)
-        if (parsed.token && parsed.id) {
-          const { token, ...u } = parsed
-          setUser(u)
-        }
-      } catch {
-        sessionStorage.removeItem(SESSION_KEY)
-      }
+    const parsed = readSession()
+    if (parsed?.token && parsed.id) {
+      const { token, ...u } = parsed
+      setUser(u)
+    } else if (parsed) {
+      clearSession()
     }
     setReady(true)
+
+    function onExpired() {
+      setUser(null)
+      setExpired(true)
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
   }, [])
 
-  function login(u, token) {
+  function login(u, token, remember = false) {
     setUser(u)
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...u, token }))
+    setExpired(false)
+    saveSession({ ...u, token }, remember)
   }
 
   function logout() {
     setUser(null)
-    sessionStorage.removeItem(SESSION_KEY)
+    clearSession()
   }
 
   return (
-    <AuthContext.Provider value={{ user, ready, login, logout }}>
+    <AuthContext.Provider value={{ user, ready, expired, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

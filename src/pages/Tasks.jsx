@@ -1,64 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getTasks, addTask, toggleTask, deleteTask } from '../api/backend.js'
-import { dueDateError, dueDateLimits } from '../utils/dueDate.js'
+import { useTasks } from '../hooks/useTasks.js'
+import { dueDateLimits } from '../utils/dueDate.js'
+import { EMPTY_TASK, compareTasks } from '../utils/tasks.js'
+import TaskRow from '../components/TaskRow.jsx'
 
-const EMPTY = { title: '', subject: '', dueDate: '', priority: 'MEDIUM' }
 const FILTERS = ['All', 'Pending', 'Completed']
 
 export default function Tasks() {
   const { user } = useAuth()
-  const [tasks, setTasks] = useState(null)
-  const [form, setForm] = useState(EMPTY)
+  const { tasks, loadError, reload, add, update, toggle, remove } = useTasks(user.id)
+  const [form, setForm] = useState(EMPTY_TASK)
   const [filter, setFilter] = useState('All')
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState(null)
 
-  useEffect(() => {
-    getTasks(user.id)
-      .then((res) => {
-        if (res.ok) setTasks(res.tasks)
-        else setError(res.error || 'Failed to load tasks.')
-      })
-      .catch(() => setError('Network error. Is the backend server running?'))
-  }, [user.id])
-
-  function update(key, value) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
-
-  async function handleAdd() {
-    if (!form.title.trim()) return
-    const dateError = dueDateError(form.dueDate)
-    if (dateError) return setError(dateError)
-    setError('')
-    const res = await addTask(user.id, form)
+  async function handleAdd(e) {
+    e.preventDefault()
+    if (saving) return
+    setSaving(true)
+    const res = await add(form)
+    setSaving(false)
     if (res.ok) {
-      setTasks((t) => [...t, res.task])
-      setForm(EMPTY)
+      setForm(EMPTY_TASK)
+      setError('')
     } else {
-      setError(res.error || 'Failed to add task.')
+      setError(res.error)
     }
   }
 
-  async function handleToggle(id) {
-    const res = await toggleTask(user.id, id)
-    if (res.ok) setTasks([...res.tasks])
-    else setError(res.error || 'Failed to update task.')
-  }
-
-  async function handleDelete(id, title) {
-    if (!window.confirm(`Delete "${title}"?`)) return
-    const res = await deleteTask(user.id, id)
-    if (res.ok) setTasks(res.tasks)
-    else setError(res.error || 'Failed to delete task.')
-  }
-
-  const filtered = tasks
-    ? tasks.filter((t) => {
-        if (filter === 'Pending') return !t.completed
-        if (filter === 'Completed') return t.completed
-        return true
-      })
+  const visible = tasks
+    ? tasks
+        .filter((t) => {
+          if (filter === 'Pending') return !t.completed
+          if (filter === 'Completed') return t.completed
+          return true
+        })
+        .sort(compareTasks)
     : []
 
   const pending = tasks ? tasks.filter((t) => !t.completed).length : 0
@@ -92,52 +71,24 @@ export default function Tasks() {
       {/* Add task form */}
       <div className="card" style={{ marginBottom: 24 }}>
         <p className="panel-title" style={{ marginBottom: 14 }}>Add new task</p>
-        {error && <p className="error">{error}</p>}
-        <div className="task-form">
-          <div className="field" style={{ margin: 0 }}>
-            <label>Task title</label>
-            <input
-              value={form.title}
-              onChange={(e) => update('title', e.target.value)}
-              placeholder="e.g. Revise Chapter 5"
-              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Subject</label>
-            <input
-              value={form.subject}
-              onChange={(e) => update('subject', e.target.value)}
-              placeholder="e.g. Cloud Computing"
-            />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Due date</label>
-            <input
-              type="date"
-              {...dueDateLimits()}
-              value={form.dueDate}
-              onChange={(e) => update('dueDate', e.target.value)}
-            />
-          </div>
-          <div className="field" style={{ margin: 0 }}>
-            <label>Priority</label>
-            <select value={form.priority} onChange={(e) => update('priority', e.target.value)}>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
-          </div>
-          <button className="btn btn-primary" onClick={handleAdd} style={{ alignSelf: 'flex-end' }}>
-            Add task
+        {error && <p className="error" role="alert">{error}</p>}
+        <form className="task-form" onSubmit={handleAdd} noValidate>
+          <TaskFields form={form} onChange={(key, value) => setForm((f) => ({ ...f, [key]: value }))} />
+          <button className="btn btn-primary" type="submit" disabled={saving} style={{ alignSelf: 'flex-end' }}>
+            {saving ? 'Adding…' : 'Add task'}
           </button>
-        </div>
+        </form>
       </div>
 
       {/* Task list */}
-      {tasks === null ? (
+      {loadError ? (
+        <p className="error" role="alert">
+          {loadError}
+          <button className="text-button" onClick={reload}>Try again</button>
+        </p>
+      ) : tasks === null ? (
         <div className="spinner">Loading tasks…</div>
-      ) : filtered.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="empty-state" style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius)' }}>
           <span className="empty-icon">
             {filter === 'Completed' ? '📭' : filter === 'Pending' ? '🎉' : '📋'}
@@ -152,31 +103,120 @@ export default function Tasks() {
         </div>
       ) : (
         <div className="task-list">
-          {filtered.map((t) => (
-            <div key={t.id} className={`task-item ${t.completed ? 'done' : ''}`}>
-              <div
-                className={`task-check ${t.completed ? 'on' : ''}`}
-                onClick={() => handleToggle(t.id)}
-                role="button"
-                aria-label="toggle complete"
-              >
-                {t.completed ? '✓' : ''}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="task-title">{t.title}</div>
-                <div className="task-meta">
-                  {t.subject}
-                  {t.due_date ? ` · due ${t.due_date}` : ''}
-                </div>
-              </div>
-              <span className={`pill ${t.priority}`}>{t.priority}</span>
-              <button className="icon-btn" onClick={() => handleDelete(t.id, t.title)} aria-label="delete">
-                ✕
-              </button>
-            </div>
-          ))}
+          {visible.map((t) =>
+            editingId === t.id ? (
+              <TaskEditor
+                key={t.id}
+                task={t}
+                onSave={async (changes) => {
+                  const res = await update(t, changes)
+                  if (res.ok) setEditingId(null)
+                  return res
+                }}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <TaskRow
+                key={t.id}
+                task={t}
+                onToggle={toggle}
+                onDelete={remove}
+                onEdit={(task) => setEditingId(task.id)}
+              />
+            )
+          )}
         </div>
       )}
     </div>
+  )
+}
+
+function TaskFields({ form, onChange, minDate }) {
+  const limits = dueDateLimits()
+  return (
+    <>
+      <div className="field" style={{ margin: 0 }}>
+        <label>Task title</label>
+        <input
+          value={form.title}
+          onChange={(e) => onChange('title', e.target.value)}
+          placeholder="e.g. Revise Chapter 5"
+          maxLength={300}
+        />
+      </div>
+      <div className="field" style={{ margin: 0 }}>
+        <label>Subject</label>
+        <input
+          value={form.subject}
+          onChange={(e) => onChange('subject', e.target.value)}
+          placeholder="e.g. Cloud Computing"
+          maxLength={100}
+        />
+      </div>
+      <div className="field" style={{ margin: 0 }}>
+        <label>Due date</label>
+        <input
+          type="date"
+          min={minDate && minDate < limits.min ? minDate : limits.min}
+          max={limits.max}
+          value={form.dueDate}
+          onChange={(e) => onChange('dueDate', e.target.value)}
+        />
+      </div>
+      <div className="field" style={{ margin: 0 }}>
+        <label>Priority</label>
+        <select value={form.priority} onChange={(e) => onChange('priority', e.target.value)}>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+      </div>
+    </>
+  )
+}
+
+function TaskEditor({ task, onSave, onCancel }) {
+  const [form, setForm] = useState({
+    title: task.title,
+    subject: task.subject || '',
+    dueDate: task.due_date || '',
+    priority: task.priority,
+  })
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave(e) {
+    e.preventDefault()
+    if (saving) return
+    setSaving(true)
+    const res = await onSave(form)
+    setSaving(false)
+    if (!res.ok) setError(res.error)
+  }
+
+  return (
+    <form
+      className="task-edit"
+      onSubmit={handleSave}
+      onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+      noValidate
+    >
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="task-form">
+        <TaskFields
+          form={form}
+          minDate={task.due_date}
+          onChange={(key, value) => setForm((f) => ({ ...f, [key]: value }))}
+        />
+      </div>
+      <div className="task-edit-actions">
+        <button className="btn btn-primary btn-sm" type="submit" disabled={saving}>
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button className="btn btn-ghost btn-sm" type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
   )
 }
