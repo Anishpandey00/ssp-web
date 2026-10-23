@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getProgress, getTasks, addTask, toggleTask, deleteTask } from '../api/backend.js'
+import { dueDateError, dueDateLimits } from '../utils/dueDate.js'
 
 function getGreeting(date) {
   const h = date.getHours()
@@ -59,6 +60,9 @@ export default function Dashboard() {
   async function handleQuickAdd(e) {
     e.preventDefault()
     if (!form.title.trim()) return
+    const dateError = dueDateError(form.dueDate)
+    if (dateError) return setError(dateError)
+    setError('')
     const res = await addTask(user.id, form)
     if (res.ok) {
       setTasks((t) => [...(t || []), res.task])
@@ -173,6 +177,7 @@ export default function Dashboard() {
                 <input
                   type="date"
                   className="quick-input"
+                  {...dueDateLimits()}
                   value={form.dueDate}
                   onChange={(e) => update('dueDate', e.target.value)}
                 />

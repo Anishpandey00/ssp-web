@@ -4,6 +4,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { randomUUID } from "crypto";
 import { query, initDb } from "./db.js";
+import { dueDateError } from "./due-date.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -114,6 +115,8 @@ app.post("/api/tasks/:userId", requireAuth, requireOwner, async (req, res) => {
   const { title, subject = "General", dueDate = null, priority = "MEDIUM" } = req.body;
   if (!title) return res.json({ ok: false, error: "Task title is required." });
   if (title.length > 300) return res.json({ ok: false, error: "Task title is too long." });
+  const dateError = dueDateError(dueDate);
+  if (dateError) return res.json({ ok: false, error: dateError });
 
   const id = randomUUID();
   const createdAt = new Date().toISOString();

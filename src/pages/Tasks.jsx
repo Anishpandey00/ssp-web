@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getTasks, addTask, toggleTask, deleteTask } from '../api/backend.js'
+import { dueDateError, dueDateLimits } from '../utils/dueDate.js'
 
 const EMPTY = { title: '', subject: '', dueDate: '', priority: 'MEDIUM' }
 const FILTERS = ['All', 'Pending', 'Completed']
@@ -27,6 +28,8 @@ export default function Tasks() {
 
   async function handleAdd() {
     if (!form.title.trim()) return
+    const dateError = dueDateError(form.dueDate)
+    if (dateError) return setError(dateError)
     setError('')
     const res = await addTask(user.id, form)
     if (res.ok) {
@@ -110,7 +113,12 @@ export default function Tasks() {
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label>Due date</label>
-            <input type="date" value={form.dueDate} onChange={(e) => update('dueDate', e.target.value)} />
+            <input
+              type="date"
+              {...dueDateLimits()}
+              value={form.dueDate}
+              onChange={(e) => update('dueDate', e.target.value)}
+            />
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label>Priority</label>
