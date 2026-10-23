@@ -8,6 +8,17 @@ import { dueDateError } from "./due-date.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
+const PRIORITIES = ["HIGH", "MEDIUM", "LOW"];
+
+// Express 4 does not catch errors thrown by async handlers; without this a
+// failed query becomes an unhandled rejection that stops the whole process.
+// Route them to the error handler at the bottom instead.
+for (const method of ["get", "post", "put", "patch", "delete"]) {
+  const register = app[method].bind(app);
+  app[method] = (path, ...handlers) =>
+    register(path, ...handlers.map((fn) => (req, res, next) =>
+      Promise.resolve(fn(req, res, next)).catch(next)));
+}
 const JWT_SECRET = process.env.JWT_SECRET || "ssp_dev_secret_change_in_production";
 
 app.use(express.json());
@@ -57,16 +68,29 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+// Emails are compared case-insensitively so "Ann@x.com" and "ann@x.com" are one account.
+function normalizeEmail(email) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
 app.post("/api/register", async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) {
+  const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
+  if (!name || !email || typeof password !== "string" || !password) {
     return res.json({ ok: false, error: "Name, email, and password are required." });
   }
   if (name.length > 100 || email.length > 200 || password.length > 200) {
     return res.json({ ok: false, error: "Input is too long." });
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.json({ ok: false, error: "Please enter a valid email address." });
+  }
+  if (password.length < 6) {
+    return res.json({ ok: false, error: "Password must be at least 6 characters." });
+  }
 
-  const existing = await query("SELECT id FROM users WHERE email = $1", [email]);
+  const existing = await query("SELECT id FROM users WHERE LOWER(email) = $1", [email]);
   if (existing.rows.length > 0) {
     return res.json({ ok: false, error: "An account with that email already exists." });
   }
@@ -83,21 +107,23 @@ app.post("/api/register", async (req, res) => {
 });
 
 app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
+  const email = normalizeEmail(req.body.email);
+  const { password } = req.body;
+  if (!email || typeof password !== "string" || !password) {
     return res.json({ ok: false, error: "Email and password are required." });
   }
 
-  const result = await query("SELECT * FROM users WHERE email = $1", [email]);
+  // LOWER() on the column also matches accounts created before emails were normalised.
+  const result = await query("SELECT * FROM users WHERE LOWER(email) = $1", [email]);
   const user = result.rows[0];
   const passwordMatches = user && (await bcrypt.compare(password, user.password));
   if (!passwordMatches) {
     return res.json({ ok: false, error: "Invalid email or password." });
   }
 
-  const { id, name, is_admin: isAdmin } = user;
-  const token = jwt.sign({ id, name, email, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: "7d" });
-  return res.json({ ok: true, user: { id, name, email, isAdmin: !!isAdmin }, token });
+  const { id, name, email: storedEmail, is_admin: isAdmin } = user;
+  const token = jwt.sign({ id, name, email: storedEmail, isAdmin: !!isAdmin }, JWT_SECRET, { expiresIn: "7d" });
+  return res.json({ ok: true, user: { id, name, email: storedEmail, isAdmin: !!isAdmin }, token });
 });
 
 // ── Task routes ───────────────────────────────────────────────────────────────
@@ -110,20 +136,58 @@ app.get("/api/tasks/:userId", requireAuth, requireOwner, async (req, res) => {
   return res.json({ ok: true, tasks: result.rows });
 });
 
+// Checks a task from the request body. `keepDate` is the task's current due
+// date when editing: an unchanged (possibly now past) date is allowed.
+function parseTask(body, keepDate) {
+  const { title, subject, dueDate, priority = "MEDIUM" } = body;
+  if (typeof title !== "string" || !title.trim()) return { error: "Task title is required." };
+  if (title.trim().length > 300) return { error: "Task title is too long." };
+  if (subject !== undefined && subject !== null && typeof subject !== "string") {
+    return { error: "Subject must be text." };
+  }
+  if (!PRIORITIES.includes(priority)) return { error: "Priority must be High, Medium, or Low." };
+  const due = dueDate || null;
+  if (due !== keepDate) {
+    const dateError = dueDateError(due);
+    if (dateError) return { error: dateError };
+  }
+  return {
+    task: {
+      title: title.trim(),
+      subject: (subject || "").trim().slice(0, 100) || "General",
+      dueDate: due,
+      priority,
+    },
+  };
+}
+
 app.post("/api/tasks/:userId", requireAuth, requireOwner, async (req, res) => {
   const { userId } = req.params;
-  const { title, subject = "General", dueDate = null, priority = "MEDIUM" } = req.body;
-  if (!title) return res.json({ ok: false, error: "Task title is required." });
-  if (title.length > 300) return res.json({ ok: false, error: "Task title is too long." });
-  const dateError = dueDateError(dueDate);
-  if (dateError) return res.json({ ok: false, error: dateError });
+  const { task, error } = parseTask(req.body);
+  if (error) return res.json({ ok: false, error });
 
   const id = randomUUID();
   const createdAt = new Date().toISOString();
   const result = await query(
     `INSERT INTO tasks (id, user_id, title, subject, due_date, priority, completed, created_at)
      VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7) RETURNING *`,
-    [id, userId, title, subject.slice(0, 100), dueDate, priority, createdAt]
+    [id, userId, task.title, task.subject, task.dueDate, task.priority, createdAt]
+  );
+  return res.json({ ok: true, task: result.rows[0] });
+});
+
+app.put("/api/tasks/:userId/:taskId", requireAuth, requireOwner, async (req, res) => {
+  const { userId, taskId } = req.params;
+  const current = await query("SELECT due_date FROM tasks WHERE id = $1 AND user_id = $2", [taskId, userId]);
+  if (current.rows.length === 0) return res.json({ ok: false, error: "Task not found." });
+
+  const { task, error } = parseTask(req.body, current.rows[0].due_date);
+  if (error) return res.json({ ok: false, error });
+
+  const result = await query(
+    `UPDATE tasks SET title = $1, subject = $2, due_date = $3, priority = $4
+     WHERE id = $5 AND user_id = $6 RETURNING *`,
+    [task.title, task.subject, task.dueDate, task.priority, taskId, userId]
   );
   return res.json({ ok: true, task: result.rows[0] });
 });
@@ -177,9 +241,22 @@ app.get("/api/quizzes", requireAuth, async (req, res) => {
 // ── Score & progress routes ────────────────────────────────────────────────────
 app.post("/api/scores/:userId", requireAuth, requireOwner, async (req, res) => {
   const { userId } = req.params;
-  const { quizId, quizTitle, score, total } = req.body;
-  if (!quizId || !quizTitle || typeof score !== "number" || typeof total !== "number") {
+  const { quizId, score } = req.body;
+  if (typeof quizId !== "string" || !Number.isInteger(score)) {
     return res.json({ ok: false, error: "Quiz score payload is invalid." });
+  }
+
+  // Title and question count come from the database, not the request.
+  const quiz = await query(
+    `SELECT q.title, COUNT(qs.id)::int AS total
+     FROM quizzes q LEFT JOIN questions qs ON qs.quiz_id = q.id
+     WHERE q.id = $1 GROUP BY q.id`,
+    [quizId]
+  );
+  if (quiz.rows.length === 0) return res.json({ ok: false, error: "Quiz not found." });
+  const { title, total } = quiz.rows[0];
+  if (score < 0 || score > total) {
+    return res.json({ ok: false, error: "Score is out of range." });
   }
 
   const id = randomUUID();
@@ -187,7 +264,7 @@ app.post("/api/scores/:userId", requireAuth, requireOwner, async (req, res) => {
   const result = await query(
     `INSERT INTO scores (id, user_id, quiz_id, quiz_title, score, total, taken_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [id, userId, quizId, quizTitle, score, total, takenAt]
+    [id, userId, quizId, title, score, total, takenAt]
   );
   return res.json({ ok: true, entry: result.rows[0] });
 });
@@ -333,6 +410,16 @@ app.patch("/api/admin/users/:userId/toggle-admin", requireAuth, requireAdmin, as
   );
   if (result.rows.length === 0) return res.json({ ok: false, error: "User not found." });
   return res.json({ ok: true, user: result.rows[0] });
+});
+
+// ── Errors ────────────────────────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ ok: false, error: "Request body is not valid JSON." });
+  }
+  console.error(err);
+  return res.status(500).json({ ok: false, error: "Something went wrong. Please try again." });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
