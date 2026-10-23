@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getProgress } from '../api/backend.js'
-import { dueDateLimits } from '../utils/dueDate.js'
+import { dueDateError, dueDateLimits, dueDateRangeText } from '../utils/dueDate.js'
 import { EMPTY_TASK, compareTasks } from '../utils/tasks.js'
 import { useTasks } from '../hooks/useTasks.js'
 import TaskRow from '../components/TaskRow.jsx'
@@ -64,7 +64,8 @@ export default function Dashboard() {
       setForm(EMPTY_TASK)
       setShowForm(false)
     } else {
-      setError(res.error)
+      // A bad date is already shown under the date field.
+      setError(res.error === dueDateError(form.dueDate) ? '' : res.error)
     }
   }
 
@@ -183,6 +184,9 @@ export default function Dashboard() {
                   {saving ? 'Adding…' : 'Add'}
                 </button>
               </div>
+              {form.dueDate && dueDateError(form.dueDate)
+                ? <p className="field-error" role="alert">{dueDateError(form.dueDate)}</p>
+                : <p className="field-hint">Due date: {dueDateRangeText()}</p>}
             </form>
           )}
 

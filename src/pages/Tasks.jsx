@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTasks } from '../hooks/useTasks.js'
-import { dueDateLimits } from '../utils/dueDate.js'
+import { dueDateError, dueDateLimits, dueDateRangeText } from '../utils/dueDate.js'
 import { EMPTY_TASK, compareTasks } from '../utils/tasks.js'
 import TaskRow from '../components/TaskRow.jsx'
 
@@ -26,7 +26,8 @@ export default function Tasks() {
       setForm(EMPTY_TASK)
       setError('')
     } else {
-      setError(res.error)
+      // A bad date is already shown under the date field.
+      setError(res.error === dueDateError(form.dueDate) ? '' : res.error)
     }
   }
 
@@ -133,6 +134,8 @@ export default function Tasks() {
 
 function TaskFields({ form, onChange, minDate }) {
   const limits = dueDateLimits()
+  // An unchanged date on an existing task is allowed even if it is now past.
+  const dateError = form.dueDate && form.dueDate !== minDate ? dueDateError(form.dueDate) : ''
   return (
     <>
       <div className="field" style={{ margin: 0 }}>
@@ -161,7 +164,11 @@ function TaskFields({ form, onChange, minDate }) {
           max={limits.max}
           value={form.dueDate}
           onChange={(e) => onChange('dueDate', e.target.value)}
+          aria-invalid={!!dateError}
         />
+        {dateError
+          ? <p className="field-error" role="alert">{dateError}</p>
+          : <p className="field-hint">Choose a date from {dueDateRangeText()}.</p>}
       </div>
       <div className="field" style={{ margin: 0 }}>
         <label>Priority</label>
@@ -191,7 +198,8 @@ function TaskEditor({ task, onSave, onCancel }) {
     setSaving(true)
     const res = await onSave(form)
     setSaving(false)
-    if (!res.ok) setError(res.error)
+    // A bad date is already shown under the date field.
+    if (!res.ok) setError(res.error === dueDateError(form.dueDate) ? '' : res.error)
   }
 
   return (

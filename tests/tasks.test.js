@@ -27,6 +27,6 @@ test("compareTasks puts pending first, then earliest due date, undated last", ()
 test("taskFormError requires a title and keeps an unchanged past date valid", () => {
   const form = { title: "  ", subject: "", dueDate: "", priority: "MEDIUM" };
   assert.equal(taskFormError(form), "Enter a task title.");
-  assert.equal(taskFormError({ ...form, title: "Read", dueDate: "2020-01-01" }), "Due date cannot be in the past.");
+  assert.match(taskFormError({ ...form, title: "Read", dueDate: "2020-01-01" }), /^Please choose a due date within the next 2 months/);
   assert.equal(taskFormError({ ...form, title: "Read", dueDate: "2020-01-01" }, "2020-01-01"), "");
 });
