@@ -91,11 +91,15 @@ image copies this output into Nginx; the backend image contains only the API and
 database seed data. `npm run preview` can preview a standalone frontend build,
 but use `npm run dev` or the Docker stack for the configured API proxy.
 
-## Azure demonstration
+## Azure deployment
 
-See [the Azure demo guide](docs/deployment/azure-demo.md) for a small VM deployment,
-HTTPS setup, and cost controls. The separate `deploy/azure/compose.yaml` keeps the
-API and database private. Local Docker commands and port settings are unchanged.
+The app runs on Azure Container Apps as three container apps (`ssp-frontend`,
+`ssp-backend`, `ssp-db`) in one environment. `bash deploy/azure/three-containers.sh`
+creates them; the database accepts internal TCP connections only.
+The current URLs are in `deploy/azure/.deployed.env`.
+
+See [the network guide](docs/deployment/network.md) for how the containers are
+connected, and run `bash scripts/network-demo.sh` to check it live.
 
 ## Verification
 
@@ -119,9 +123,9 @@ does not replace checking the running containers and the application's main flow
 ```text
 ssp-web/
 ├── .github/workflows/        automated project checks
-├── deploy/azure/            cloud Compose configuration and HTTPS example
+├── deploy/azure/            Azure Container Apps deployment script
 ├── docs/
-│   ├── deployment/          Azure demonstration instructions
+│   ├── deployment/          container network guide
 │   ├── presentations/       UI mockups and final presentation
 │   └── reports/             thesis and team submission links
 ├── public/                  static images
@@ -142,13 +146,14 @@ ssp-web/
 ├── tests/                   administrator initialization regression tests
 ├── .env.example             configuration template; copy to .env
 ├── Dockerfile               Express backend image
-├── Dockerfile.frontend      React build + Nginx frontend image
+├── Dockerfile.frontend      React build + Nginx frontend image (local)
+├── Dockerfile.frontend.azure  frontend image for Azure (backend URL from env)
 ├── docker-compose.yml       frontend, backend, and database services
-├── nginx.conf               frontend serving and API proxy
+├── nginx.conf               frontend serving and API proxy (local)
+├── nginx.azure.conf         same, for Azure
 ├── index.html               frontend HTML entry
 ├── package.json             dependencies and commands
 ├── package-lock.json        dependency lockfile
-├── Procfile                 backend process for compatible hosting
 ├── vite.config.js           frontend build and development settings
 └── README.md                setup and project guide
 ```

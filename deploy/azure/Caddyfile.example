@@ -1,4 +1,0 @@
-# Replace with the exact DNS name shown on the Azure public IP resource.
-your-demo.region.cloudapp.azure.com {
-    reverse_proxy 127.0.0.1:3000
-}

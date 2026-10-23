@@ -18,10 +18,9 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: node --check server/index.js && node --check server/db.js
-      - name: Validate local and Azure Compose files
+      - name: Validate Compose file
         env:
           DB_PASSWORD: ci-placeholder-not-a-real-password
           JWT_SECRET: ci-placeholder-not-a-real-secret
         run: |
           docker compose config --quiet
-          docker compose -f deploy/azure/compose.yaml config --quiet
