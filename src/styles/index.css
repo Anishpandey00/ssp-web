@@ -414,6 +414,11 @@ input[type="checkbox"] {
 input[aria-invalid="true"] {
   border-color: #a33c32;
 }
+.field-hint {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
 .field-error {
   color: #92342d;
   font-size: 0.78rem;
