@@ -1,5 +1,5 @@
 // Server-side twin of src/utils/dueDate.js so the API rejects bad dates too.
-const MAX_YEARS_AHEAD = 5;
+const MAX_MONTHS_AHEAD = 2;
 
 function toIsoDate(d) {
   return d.toISOString().slice(0, 10);
@@ -16,11 +16,12 @@ export function dueDateError(value, now = new Date()) {
 
   const earliest = new Date(now);
   earliest.setUTCDate(earliest.getUTCDate() - 1);
-  const latest = new Date(now);
-  latest.setUTCFullYear(latest.getUTCFullYear() + MAX_YEARS_AHEAD);
-  latest.setUTCDate(latest.getUTCDate() + 1);
+  // Clamp to the month's last day so Dec 31 + 2 months is Feb 28/29, not Mar 3.
+  const latest = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + MAX_MONTHS_AHEAD, 1));
+  const lastDay = new Date(Date.UTC(latest.getUTCFullYear(), latest.getUTCMonth() + 1, 0)).getUTCDate();
+  latest.setUTCDate(Math.min(now.getUTCDate(), lastDay) + 1);
 
   if (value < toIsoDate(earliest)) return "Due date cannot be in the past.";
-  if (value > toIsoDate(latest)) return `Due date must be within ${MAX_YEARS_AHEAD} years.`;
+  if (value > toIsoDate(latest)) return `Due date must be within ${MAX_MONTHS_AHEAD} months.`;
   return "";
 }

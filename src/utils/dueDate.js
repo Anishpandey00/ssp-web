@@ -1,5 +1,5 @@
-// Due dates must be real calendar dates from today up to MAX_YEARS_AHEAD.
-export const MAX_YEARS_AHEAD = 5
+// Due dates must be real calendar dates from today up to MAX_MONTHS_AHEAD.
+export const MAX_MONTHS_AHEAD = 2
 
 function toIsoDate(d) {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
@@ -8,8 +8,10 @@ function toIsoDate(d) {
 }
 
 export function dueDateLimits(today = new Date()) {
-  const max = new Date(today)
-  max.setFullYear(max.getFullYear() + MAX_YEARS_AHEAD)
+  // Clamp to the month's last day so Dec 31 + 2 months is Feb 28/29, not Mar 3.
+  const max = new Date(today.getFullYear(), today.getMonth() + MAX_MONTHS_AHEAD, 1)
+  const lastDay = new Date(max.getFullYear(), max.getMonth() + 1, 0).getDate()
+  max.setDate(Math.min(today.getDate(), lastDay))
   return { min: toIsoDate(today), max: toIsoDate(max) }
 }
 
@@ -21,6 +23,6 @@ export function dueDateError(value, today = new Date()) {
   if (!date || toIsoDate(date) !== value) return 'Enter a valid due date.'
   const { min, max } = dueDateLimits(today)
   if (value < min) return 'Due date cannot be in the past.'
-  if (value > max) return `Due date must be within ${MAX_YEARS_AHEAD} years.`
+  if (value > max) return `Due date must be within ${MAX_MONTHS_AHEAD} months.`
   return ''
 }
