@@ -17,7 +17,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: node --check server/index.js && node --check server/db.js
+      - run: npm ci --prefix services
+      - run: for f in services/shared/*.js services/*/*.js; do node --check "$f"; done
       - name: Validate Compose file
         env:
           DB_PASSWORD: ci-placeholder-not-a-real-password

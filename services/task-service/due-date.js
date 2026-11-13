@@ -1,4 +1,4 @@
-// Server-side twin of src/utils/dueDate.js so the API rejects bad dates too.
+// Task-service twin of src/utils/dueDate.js so the API rejects bad dates too.
 const MAX_MONTHS_AHEAD = 2;
 
 function toIsoDate(d) {

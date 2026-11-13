@@ -1,0 +1,20 @@
+{
+  "name": "smart-study-planner-services",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Smart Study Planner microservices: auth, task, quiz and progress",
+  "scripts": {
+    "auth": "PORT=4001 node auth-service/index.js",
+    "task": "PORT=4002 node task-service/index.js",
+    "quiz": "PORT=4003 node quiz-service/index.js",
+    "progress": "PORT=4004 node progress-service/index.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.21.0"
+  }
+}

@@ -4,13 +4,16 @@ A web-based study planner built with **React + Vite**, implementing the
 Software Requirements Specification (SRS). Students can register/log in, manage
 study tasks, take quizzes, and track their progress.
 
-Docker runs three separate containers: an Nginx frontend serving React, an
-Express REST API backend, and a PostgreSQL database.
+The backend is split into **four microservices**. Docker runs six containers:
+an Nginx frontend that also acts as the API gateway, the Auth, Task, Quiz and
+Progress services (each a small Express app), and PostgreSQL holding one
+database per service.
 
 ## Tech stack
 
 - React 18 + Vite, served by Nginx in Docker
-- Express + PostgreSQL 16
+- Four Express microservices + PostgreSQL 16 (one database per service)
+- Nginx as the API gateway
 - React Router for navigation
 - Fonts: Fraunces (display) + Outfit (body)
 
@@ -23,7 +26,7 @@ cp .env.example .env
 ```
 
 Edit `.env` to set `DB_PASSWORD` and a long random `JWT_SECRET`. If `.env` already
-exists, update it instead of overwriting it. Then build and start all three containers:
+exists, update it instead of overwriting it. Then build and start all six containers:
 
 ```bash
 docker compose up -d --build --wait
@@ -32,41 +35,70 @@ docker compose ps
 
 Open http://localhost:3000 (or the host port configured by `FRONTEND_PORT` in `.env`).
 Set `FRONTEND_PORT` in `.env` to change the frontend address. It defaults to 3000
-and is independent of `PORT`, which controls the backend during local development.
+and is the only port Docker publishes; the services are reached through it.
 Save `.env`, then run `docker compose up -d --wait` to apply a port change; no rebuild
 is needed for port changes.
 
-| Container | Purpose | Address |
+| Container | Purpose | Database |
 | --- | --- | --- |
-| `ssp-frontend` | Nginx serves React and forwards `/api/...` requests to Express. | http://localhost:3000 by default; container port 80 |
-| `ssp-backend` | Express API for accounts, tasks, quizzes, and progress. | http://localhost:9001/api/health by default; container port 4000 |
-| `ssp-db` | PostgreSQL stores application data. | Internal `db:5432`; no published host port |
+| `ssp-frontend` | Nginx serves React and is the API gateway: it sends each `/api/...` path to the service that owns it. The only published port: http://localhost:3000 by default. | none |
+| `ssp-auth` | `auth-service`: sign up, log in, admin user management. Issues the login token. | `auth_db` (users) |
+| `ssp-task` | `task-service`: study tasks. | `task_db` (tasks) |
+| `ssp-quiz` | `quiz-service`: quizzes, questions, saved scores, admin quiz editing. | `quiz_db` (quizzes, questions, scores) |
+| `ssp-progress` | `progress-service`: Dashboard and Progress numbers. Calls Task and Quiz at the same time. | none |
+| `ssp-db` | PostgreSQL holding the three service databases. Internal `db:5432`; no published port. | |
 
-If Docker reports that a host port is already allocated, set `FRONTEND_PORT` or
-`BACKEND_PORT` in `.env` to an available port, then rerun `docker compose up -d --wait`.
+| Request path | Goes to |
+| --- | --- |
+| `/api/register`, `/api/login`, `/api/admin/users/...` | auth-service |
+| `/api/tasks/...` | task-service |
+| `/api/quizzes`, `/api/scores/...`, `/api/admin/quizzes/...` | quiz-service |
+| `/api/progress/...` | progress-service |
 
-Compose waits for PostgreSQL to become healthy before starting the backend.
-It then waits for the backend health check before starting the frontend.
-Database tables and initial quizzes are created automatically on backend startup.
+Every service checks the login token itself with the shared `JWT_SECRET`; none
+of them calls the Auth service to do it. If the Quiz service stops, login, tasks
+and the dashboard's task numbers keep working, and Docker restarts it.
+
+If Docker reports that a host port is already allocated, set `FRONTEND_PORT`
+in `.env` to an available port, then rerun `docker compose up -d --wait`.
+
+Compose starts the containers in four waves: PostgreSQL; then Auth, Task and
+Quiz once it is healthy; then Progress once Task and Quiz are healthy; then the
+frontend once all four services are healthy. Each service creates its own
+database and tables on startup, and the Quiz service loads the starter quizzes.
 For a new database, optionally set both `ADMIN_EMAIL` and `ADMIN_PASSWORD` in
 `.env` before starting. Use a unique password of at least 12 characters. No default
 administrator password is created. Existing administrator accounts are preserved.
-The frontend calls `/api` on its own origin; Nginx forwards these requests to
-`http://backend:4000` on the Docker network. The backend does not serve frontend files.
-The database is accessible inside the Docker network; it does not publish a host port.
+The frontend calls `/api` on its own origin; Nginx forwards each request to the
+service that owns its path on the Docker network. The services do not serve
+frontend files. The database is reachable only from the Auth, Task and Quiz
+services; it does not publish a host port.
 Data persists in the `ssp-db-data` volume, including after containers are stopped.
 For an existing volume, keep its original database credentials: changing `.env`
 does not change the password stored in PostgreSQL.
 
-```bash
-# View logs
-docker compose logs -f frontend backend db
+**Moving data from the old single backend.** A volume created before the split
+holds everything in `smart_study_planner`. After the first `docker compose up`,
+copy it into the service databases once (the old database is only read):
 
-# Check the frontend-to-backend connection (use your configured frontend port)
+```bash
+bash scripts/migrate-to-microservices.sh --yes
+```
+
+```bash
+# View logs of every service
+docker compose logs -f
+
+# Check the gateway, and each service's own health check
 curl http://localhost:3000/api/health
+docker compose ps
+
+# Stop one service and watch the rest keep working, then start it again
+docker compose stop quiz-service
+docker compose start quiz-service
 
 # Open a database shell
-docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d task_db'
 
 # Stop containers while preserving database data
 docker compose down
@@ -77,26 +109,32 @@ docker compose down
 ## Local development
 
 With Node.js and a running PostgreSQL database, configure `.env` for that database
-(`DB_HOST=localhost`), then run the backend and frontend in separate terminals:
+(`DB_HOST=localhost`), then run the four services and the frontend in separate terminals:
 
 ```bash
 npm ci
+npm ci --prefix services
 npm run server
 npm run dev
 ```
 
-Vite serves the frontend at http://localhost:5173 and proxies `/api` to port 4000.
+`npm run server` starts Auth on port 4001, Task on 4002, Quiz on 4003 and
+Progress on 4004. Vite serves the frontend at http://localhost:5173 and sends
+each `/api` path to the service that owns it, like Nginx does in Docker.
 For a production build, `npm run build` generates `dist`. In Docker, the frontend
-image copies this output into Nginx; the backend image contains only the API and
-database seed data. `npm run preview` can preview a standalone frontend build,
+image copies this output into Nginx; each service image (built from
+`services/Dockerfile` with `--build-arg SERVICE=...`) holds the shared code and
+only its own service folder. `npm run preview` can preview a standalone frontend build,
 but use `npm run dev` or the Docker stack for the configured API proxy.
 
 ## Azure deployment
 
-The app runs on Azure Container Apps as three container apps (`ssp-frontend`,
-`ssp-backend`, `ssp-db`) in one environment. `bash deploy/azure/three-containers.sh`
-creates them; the database accepts internal TCP connections only.
-The current URLs are in `deploy/azure/.deployed.env`.
+The app currently deployed on Azure Container Apps is still the earlier
+three-container version (`ssp-frontend`, `ssp-backend`, `ssp-db`), created by
+`bash deploy/azure/three-containers.sh`; the database accepts internal TCP
+connections only. The current URLs are in `deploy/azure/.deployed.env`.
+Moving Azure to the four services (internal ingress for each, the frontend's
+`nginx.azure.conf` routing to them) is a separate, not yet done step.
 
 See [the network guide](docs/deployment/network.md) for how the containers are
 connected, and run `bash scripts/network-demo.sh` to check it live.
@@ -129,12 +167,15 @@ ssp-web/
 │   ├── presentations/       UI mockups and final presentation
 │   └── reports/             thesis and team submission links
 ├── public/                  static images
-├── scripts/                 repository maintenance scripts
-├── server/
-│   ├── index.js             Express API routes and startup
-│   ├── db.js                database connection and initialization
-│   ├── admin-seed.js        optional administrator creation
-│   └── data/quizzes.js      initial quiz data
+├── scripts/                 network demo, data migration, maintenance
+├── services/                the four microservices
+│   ├── shared/              Express setup, token checks, database pool
+│   ├── auth-service/        sign up, log in, admin users      (auth_db)
+│   ├── task-service/        study tasks, due-date rule        (task_db)
+│   ├── quiz-service/        quizzes, scores, starter quizzes  (quiz_db)
+│   ├── progress-service/    dashboard numbers from Task + Quiz
+│   ├── Dockerfile           one image per service (--build-arg SERVICE)
+│   └── package.json         the services' dependencies
 ├── src/
 │   ├── main.jsx             React entry point
 │   ├── App.jsx              page routes
@@ -143,14 +184,13 @@ ssp-web/
 │   ├── components/          shared interface components
 │   ├── pages/               student and admin pages
 │   └── styles/              shared styles
-├── tests/                   administrator initialization regression tests
+├── tests/                   admin seeding, due dates, tasks, progress
 ├── .env.example             configuration template; copy to .env
-├── Dockerfile               Express backend image
 ├── Dockerfile.frontend      React build + Nginx frontend image (local)
 ├── Dockerfile.frontend.azure  frontend image for Azure (backend URL from env)
-├── docker-compose.yml       frontend, backend, and database services
-├── nginx.conf               frontend serving and API proxy (local)
-├── nginx.azure.conf         same, for Azure
+├── docker-compose.yml       the six containers and their networks
+├── nginx.conf               frontend serving and API gateway (local)
+├── nginx.azure.conf         frontend for the current Azure (single backend)
 ├── index.html               frontend HTML entry
 ├── package.json             dependencies and commands
 ├── package-lock.json        dependency lockfile
@@ -175,7 +215,7 @@ Their contents differ; neither was discarded.
 | REQ-7 button opens task section  | `pages/Dashboard.jsx` → `/tasks`                |
 | REQ-8 add tasks                  | `pages/Tasks.jsx` → `addTask`                   |
 | REQ-9 delete tasks               | `pages/Tasks.jsx` → `deleteTask`                |
-| REQ-10 tasks stored in database  | `server/db.js` (PostgreSQL)             |
+| REQ-10 tasks stored in database  | `services/task-service` (`task_db`)     |
 | REQ-11 tasks displayed in a list | `pages/Tasks.jsx`                               |
 | REQ-12 start a quiz              | `pages/Quiz.jsx`                                |
 | REQ-13 questions displayed       | `pages/Quiz.jsx`                                |

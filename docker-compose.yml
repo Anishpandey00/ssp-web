@@ -1,3 +1,30 @@
+# Smart Study Planner as microservices: 6 containers.
+#   frontend          nginx: serves React and is the API gateway (only public port)
+#   auth-service      sign up, log in, admin users      -> auth_db
+#   task-service      study tasks                       -> task_db
+#   quiz-service      quizzes, questions, scores        -> quiz_db
+#   progress-service  dashboard numbers, asks task + quiz (no database)
+#   db                PostgreSQL holding the three databases
+
+# Settings every API service shares.
+x-service-env: &service-env
+  NODE_ENV: production
+  PORT: 4000
+  JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+
+x-db-env: &db-env
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_USER: ${DB_USER:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+
+x-healthcheck: &service-healthcheck
+  test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+  interval: 5s
+  timeout: 5s
+  retries: 12
+  start_period: 10s
+
 services:
   db:
     image: postgres:16-alpine
@@ -9,8 +36,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-smart_study_planner}
     volumes:
       - ssp-db-data:/var/lib/postgresql/data
-    # Only on the private back-end network: no published port, so nothing
-    # outside Docker (and not even the frontend) can reach the database.
+    # Only on the private data network: no published port, and the frontend
+    # and progress-service cannot reach it.
     networks:
       - backend-net
     healthcheck:
@@ -20,39 +47,80 @@ services:
       retries: 12
       start_period: 10s
 
-  backend:
+  auth-service:
     build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ssp-backend
+      context: ./services
+      args:
+        SERVICE: auth-service
+    image: ssp-auth-service
+    container_name: ssp-auth
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-    # Joins both networks: talks to the frontend on one and the database on
-    # the other. "db" below is resolved by Docker's built-in DNS.
-    networks:
-      - frontend-net
-      - backend-net
+    networks: [frontend-net, backend-net]
     environment:
-      NODE_ENV: production
-      PORT: 4000
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
-      DB_NAME: ${DB_NAME:-smart_study_planner}
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      <<: [*service-env, *db-env]
+      AUTH_DB_NAME: auth_db
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-    ports:
-      - "${BACKEND_PORT:-9001}:4000"
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
+    healthcheck: *service-healthcheck
+
+  task-service:
+    build:
+      context: ./services
+      args:
+        SERVICE: task-service
+    image: ssp-task-service
+    container_name: ssp-task
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [frontend-net, backend-net]
+    environment:
+      <<: [*service-env, *db-env]
+      TASK_DB_NAME: task_db
+    healthcheck: *service-healthcheck
+
+  quiz-service:
+    build:
+      context: ./services
+      args:
+        SERVICE: quiz-service
+    image: ssp-quiz-service
+    container_name: ssp-quiz
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [frontend-net, backend-net]
+    environment:
+      <<: [*service-env, *db-env]
+      QUIZ_DB_NAME: quiz_db
+    healthcheck: *service-healthcheck
+
+  progress-service:
+    build:
+      context: ./services
+      args:
+        SERVICE: progress-service
+    image: ssp-progress-service
+    container_name: ssp-progress
+    restart: unless-stopped
+    # Starts once the two services it calls are healthy. It has no database
+    # and is not on backend-net, so it cannot reach the db at all.
+    depends_on:
+      task-service:
+        condition: service_healthy
+      quiz-service:
+        condition: service_healthy
+    networks: [frontend-net]
+    environment:
+      <<: *service-env
+      TASK_SERVICE_URL: http://task-service:4000
+      QUIZ_SERVICE_URL: http://quiz-service:4000
+    healthcheck: *service-healthcheck
 
   frontend:
     build:
@@ -60,13 +128,18 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: ssp-frontend
     restart: unless-stopped
+    # Starts last, once every service is healthy. After that it keeps running
+    # even if one service stops: nginx answers for that service's paths only.
     depends_on:
-      backend:
+      auth-service:
         condition: service_healthy
-        restart: true
-    # nginx forwards /api/ to http://backend:4000 over this network.
-    networks:
-      - frontend-net
+      task-service:
+        condition: service_healthy
+      quiz-service:
+        condition: service_healthy
+      progress-service:
+        condition: service_healthy
+    networks: [frontend-net]
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     healthcheck:
@@ -77,11 +150,11 @@ services:
       start_period: 5s
 
 networks:
-  # Browser-facing side: frontend <-> backend.
+  # Gateway side: nginx <-> the four services, and progress <-> task/quiz.
   frontend-net:
     name: ssp-frontend-net
     driver: bridge
-  # Private data side: backend <-> db. internal: no route to the internet.
+  # Private data side: auth/task/quiz <-> db. internal: no route to the internet.
   backend-net:
     name: ssp-backend-net
     driver: bridge

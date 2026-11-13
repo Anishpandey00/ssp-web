@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dueDateError } from "../server/due-date.js";
+import { dueDateError } from "../services/task-service/due-date.js";
 import { dueDateError as clientDueDateError, dueDateRangeText } from "../src/utils/dueDate.js";
 
 const now = new Date("2026-10-23T04:00:00Z");

@@ -111,7 +111,7 @@ export default function Dashboard() {
           accent
         />
         <StatCard
-          value={stats ? stats.quizzesTaken : '—'}
+          value={stats && !stats.scoresUnavailable ? stats.quizzesTaken : '—'}
           label="Quizzes taken"
           icon="🧠"
           onClick={() => navigate('/quiz')}

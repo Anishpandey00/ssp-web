@@ -58,7 +58,7 @@ export default function Progress() {
             <div className="lbl">Task completion</div>
           </div>
           <div className="tile">
-            <div className="big">{p.quizzesTaken}</div>
+            <div className="big">{p.scoresUnavailable ? '—' : p.quizzesTaken}</div>
             <div className="lbl">Quizzes taken</div>
           </div>
           <div className="tile">
@@ -82,7 +82,9 @@ export default function Progress() {
 
       <div className="card">
         <h3 style={{ fontFamily: 'var(--display)', marginBottom: 14 }}>Quiz history</h3>
-        {scores.length === 0 ? (
+        {p.scoresUnavailable ? (
+          <p className="muted">Quiz scores are unavailable right now. Your task progress above is up to date; try again in a moment for your scores.</p>
+        ) : scores.length === 0 ? (
           <p className="muted">No quizzes taken yet. Take one from the Quiz page to see your scores here.</p>
         ) : (
           <div className="score-history">

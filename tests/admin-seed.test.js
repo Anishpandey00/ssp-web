@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import bcrypt from "bcrypt";
-import { seedAdmin } from "../server/admin-seed.js";
+import { seedAdmin } from "../services/auth-service/admin-seed.js";
 
 test("does not create a default administrator without explicit credentials", async () => {
   let calls = 0;
