@@ -162,12 +162,9 @@ does not replace checking the running containers and the application's main flow
 ssp-web/
 ├── .github/workflows/        automated project checks
 ├── deploy/azure/            Azure Container Apps deployment script
-├── docs/
-│   ├── deployment/          container network guide
-│   ├── presentations/       UI mockups and final presentation
-│   └── reports/             thesis and team submission links
+├── docs/deployment/         container network guide
 ├── public/                  static images
-├── scripts/                 network demo, data migration, maintenance
+├── scripts/                 network demo, data migration
 ├── services/                the four microservices
 │   ├── shared/              Express setup, token checks, database pool
 │   ├── auth-service/        sign up, log in, admin users      (auth_db)
@@ -197,10 +194,6 @@ ssp-web/
 ├── vite.config.js           frontend build and development settings
 └── README.md                setup and project guide
 ```
-
-The two UI mockup presentations are retained as separate versions:
-`SSP_UI_Mockup_All_Pages.pptx` and `SSP_UI_Mockup_Alternative.pptx`.
-Their contents differ; neither was discarded.
 
 ## SRS requirements traceability
 

@@ -20,3 +20,10 @@ dist/
 .azure/
 coverage/
 .vercel
+
+# Presentations, reports and local-only helpers (kept on disk, not in GitHub)
+docs/presentations/
+docs/reports/
+deploy/azure/.deployed.env
+scripts/publish-project.py
+scripts/remove-ai-coauthor.sh
