@@ -4,6 +4,7 @@ import { useTasks } from '../hooks/useTasks.js'
 import { dueDateError, dueDateLimits, dueDateRangeText } from '../utils/dueDate.js'
 import { EMPTY_TASK, compareTasks } from '../utils/tasks.js'
 import TaskRow from '../components/TaskRow.jsx'
+import StudyPlanner from '../components/StudyPlanner.jsx'
 
 const FILTERS = ['All', 'Pending', 'Completed']
 
@@ -68,6 +69,9 @@ export default function Tasks() {
           ))}
         </div>
       </div>
+
+      {/* AI study plan */}
+      <StudyPlanner onAdd={add} />
 
       {/* Add task form */}
       <div className="card" style={{ marginBottom: 24 }}>

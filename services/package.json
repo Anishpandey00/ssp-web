@@ -3,12 +3,13 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Smart Study Planner microservices: auth, task, quiz and progress",
+  "description": "Smart Study Planner microservices: auth, task, quiz, progress and ai",
   "scripts": {
     "auth": "PORT=4001 node auth-service/index.js",
     "task": "PORT=4002 node task-service/index.js",
     "quiz": "PORT=4003 node quiz-service/index.js",
-    "progress": "PORT=4004 node progress-service/index.js"
+    "progress": "PORT=4004 node progress-service/index.js",
+    "ai": "PORT=4005 node ai-service/index.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -9,11 +9,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "concurrently -n auth,task,quiz,progress -c blue,green,yellow,magenta \"npm:service:*\"",
+    "server": "concurrently -n auth,task,quiz,progress,ai -c blue,green,yellow,magenta,cyan \"npm:service:*\"",
     "service:auth": "PORT=4001 node services/auth-service/index.js",
     "service:task": "PORT=4002 node services/task-service/index.js",
     "service:quiz": "PORT=4003 node services/quiz-service/index.js",
     "service:progress": "PORT=4004 node services/progress-service/index.js",
+    "service:ai": "PORT=4005 node services/ai-service/index.js",
     "start": "npm run server",
     "share": "concurrently \"npm run server\" \"vite\" \"lt --port 5173 --subdomain ssp-web-app\" --handle-input",
     "tunnel": "lt --port 5173 --subdomain ssp-web-app --local-host localhost"

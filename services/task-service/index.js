@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { createService, startService } from "../shared/app.js";
 import { requireAuth, requireOwner } from "../shared/auth.js";
 import { createDb } from "../shared/db.js";
-import { dueDateError } from "./due-date.js";
+import { dueDateError } from "../shared/due-date.js";
 
 const PRIORITIES = ["HIGH", "MEDIUM", "LOW"];
 const db = createDb(process.env.TASK_DB_NAME || "task_db");

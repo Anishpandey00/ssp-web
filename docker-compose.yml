@@ -1,9 +1,10 @@
-# Smart Study Planner as microservices: 6 containers.
+# Smart Study Planner as microservices: 7 containers.
 #   frontend          nginx: serves React and is the API gateway (only public port)
 #   auth-service      sign up, log in, admin users      -> auth_db
 #   task-service      study tasks                       -> task_db
 #   quiz-service      quizzes, questions, scores        -> quiz_db
 #   progress-service  dashboard numbers, asks task + quiz (no database)
+#   ai-service        AI study plan via Ollama on the host (no database)
 #   db                PostgreSQL holding the three databases
 
 # Settings every API service shares.
@@ -122,6 +123,27 @@ services:
       QUIZ_SERVICE_URL: http://quiz-service:4000
     healthcheck: *service-healthcheck
 
+  ai-service:
+    build:
+      context: ./services
+      args:
+        SERVICE: ai-service
+    image: ssp-ai-service
+    container_name: ssp-ai
+    restart: unless-stopped
+    # No database. It calls Ollama, which runs on the host (the Mac app uses
+    # the GPU; Ollama inside Docker on a Mac cannot). host-gateway makes
+    # host.docker.internal work on Linux too. It stays healthy when Ollama is
+    # off: only the AI buttons stop working.
+    networks: [frontend-net]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *service-env
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+    healthcheck: *service-healthcheck
+
   frontend:
     build:
       context: .
@@ -139,6 +161,8 @@ services:
         condition: service_healthy
       progress-service:
         condition: service_healthy
+      ai-service:
+        condition: service_healthy
     networks: [frontend-net]
     ports:
       - "${FRONTEND_PORT:-3000}:80"
@@ -150,7 +174,7 @@ services:
       start_period: 5s
 
 networks:
-  # Gateway side: nginx <-> the four services, and progress <-> task/quiz.
+  # Gateway side: nginx <-> the five services, and progress <-> task/quiz.
   frontend-net:
     name: ssp-frontend-net
     driver: bridge

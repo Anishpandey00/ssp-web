@@ -104,6 +104,13 @@ export async function getProgress(userId) {
   return request(`progress/${encodeURIComponent(userId)}`);
 }
 
+// ── AI assistant ──────────────────────────────────────────────────────────────
+// Suggested tasks only; nothing is saved. `today` is the browser's date
+// (YYYY-MM-DD) so suggested due dates match the student's calendar.
+export async function suggestStudyPlan(goal, today) {
+  return request("ai/study-plan", { method: "POST", body: { goal, today } });
+}
+
 // ── Admin API ─────────────────────────────────────────────────────────────────
 export async function adminGetQuizzes() {
   return request("admin/quizzes");

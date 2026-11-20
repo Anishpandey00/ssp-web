@@ -30,13 +30,14 @@ export function useTasks(userId) {
     reload()
   }, [reload])
 
-  async function add(form) {
+  // `quiet` skips the toast, for callers that add several tasks and show one.
+  async function add(form, { quiet = false } = {}) {
     const error = taskFormError(form)
     if (error) return { ok: false, error }
     const res = await addTask(userId, form)
     if (!res.ok) return { ok: false, error: res.error || 'Failed to add task.' }
     setTasks((list) => [res.task, ...(list || [])])
-    toast(`Added "${res.task.title}"`)
+    if (!quiet) toast(`Added "${res.task.title}"`)
     return res
   }
 

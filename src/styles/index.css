@@ -713,6 +713,20 @@ input[aria-invalid="true"] {
 .task-edit:last-child { border-bottom: 0; }
 .task-edit-actions { display: flex; gap: 8px; }
 
+/* AI study plan */
+.ai-plan { margin-bottom: 24px; border-color: #e4def9; background: linear-gradient(135deg, #fff 60%, #f4f1fd); }
+.ai-plan-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.ai-plan-form { display: grid; gap: 12px; margin-top: 18px; }
+.ai-plan-form textarea { resize: vertical; min-height: 84px; font-family: inherit; }
+.ai-plan-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ai-plan > .field-hint { margin-top: 12px; }
+.ai-results { margin-top: 18px; display: grid; gap: 14px; }
+.ai-suggestions { list-style: none; margin: 0; padding: 4px 18px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.ai-suggestions li + li { border-top: 1px solid #ddd9f790; }
+.ai-suggestion { display: flex; align-items: center; gap: 12px; padding: 14px 0; cursor: pointer; }
+.ai-suggestion.off .task-title, .ai-suggestion.off .task-meta { color: var(--ink-soft); text-decoration: line-through; }
+.ai-suggestion.off .pill { opacity: .5; }
+
 /* Toasts */
 .toast-stack { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); display: grid; gap: 8px; z-index: 50; width: min(92vw, 440px); pointer-events: none; }
 .toast { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 12px; background: var(--ink); color: white; font-size: .85rem; box-shadow: 0 10px 28px -12px #1d1b2e80; pointer-events: auto; animation: toast-in .2s ease-out; }
