@@ -111,6 +111,13 @@ export async function suggestStudyPlan(goal, today) {
   return request("ai/study-plan", { method: "POST", body: { goal, today } });
 }
 
+// "Today's focus" tips from the student's tasks and quiz scores. `fresh`
+// asks for new AI tips instead of the remembered ones.
+export async function getStudyTips(today, fresh = false) {
+  const query = new URLSearchParams({ today, ...(fresh && { fresh: "1" }) });
+  return request(`ai/study-tips?${query}`);
+}
+
 // ── Admin API ─────────────────────────────────────────────────────────────────
 export async function adminGetQuizzes() {
   return request("admin/quizzes");

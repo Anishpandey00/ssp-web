@@ -8,7 +8,7 @@ The backend is split into **five microservices**. Docker runs seven containers:
 an Nginx frontend that also acts as the API gateway, the Auth, Task, Quiz,
 Progress and AI services (each a small Express app), and PostgreSQL holding one
 database per service. The AI service uses a free, local AI model run by
-[Ollama](https://ollama.com) on the host; see [AI study plan](#ai-study-plan-ollama).
+[Ollama](https://ollama.com) on the host; see [AI study plan and study tips](#ai-study-plan-and-study-tips-ollama).
 
 ## Tech stack
 
@@ -48,7 +48,7 @@ is needed for port changes.
 | `ssp-task` | `task-service`: study tasks. | `task_db` (tasks) |
 | `ssp-quiz` | `quiz-service`: quizzes, questions, saved scores, admin quiz editing. | `quiz_db` (quizzes, questions, scores) |
 | `ssp-progress` | `progress-service`: Dashboard and Progress numbers. Calls Task and Quiz at the same time. | none |
-| `ssp-ai` | `ai-service`: AI study plan. Calls Ollama on the host; saves nothing. | none |
+| `ssp-ai` | `ai-service`: AI study plan and study tips. Calls Ollama on the host, and Task and Quiz for the tips; saves nothing. | none |
 | `ssp-db` | PostgreSQL holding the three service databases. Internal `db:5432`; no published port. | |
 
 | Request path | Goes to |
@@ -132,12 +132,20 @@ image copies this output into Nginx; each service image (built from
 only its own service folder. `npm run preview` can preview a standalone frontend build,
 but use `npm run dev` or the Docker stack for the configured API proxy.
 
-## AI study plan (Ollama)
+## AI study plan and study tips (Ollama)
 
 On the **Tasks** page, **✨ Plan my study with AI** turns a goal such as
 "Physics exam on Dec 12, weak on optics" into 4–8 suggested tasks with subjects,
 due dates and priorities. The student ticks the ones to keep and adds them; they
 then go through the Task service's normal checks. Nothing is saved before that.
+
+On the **Dashboard**, **✨ Today's focus** gives one thing to do first and 2–3
+tips, based on overdue and soon-due tasks, the subject with the most pending
+work, undated tasks and the weakest and best quiz scores. These facts are worked
+out in code; the model only writes them as advice, and is told never to invent
+tasks or scores. AI tips are remembered until the student's tasks or scores
+change (**New tips** asks again). If Ollama is off or busy, the card shows
+simpler tips written in code instead, so the Dashboard never shows an error for it.
 
 The model runs on your own computer with Ollama: free, private, no API key.
 Install Ollama natively (not in Docker: on a Mac, Docker cannot use the GPU),
@@ -155,8 +163,8 @@ The `ai-service` container reaches it at `http://host.docker.internal:11434`;
 the app works normally and the AI panel shows that the assistant is offline.
 The first answer after Ollama starts can take up to a minute while the model loads.
 
-Limits: one AI request at a time per student and five per minute; goals up to
-500 characters. AI suggestions can be wrong, so students review them before adding.
+Limits: one study-plan request at a time per student and five per minute; goals up to
+500 characters; ten new tips per minute. AI suggestions can be wrong, so students review them before adding.
 
 ## Azure deployment
 
@@ -199,12 +207,13 @@ ssp-web/
 ├── public/                  static images
 ├── scripts/                 network demo, data migration
 ├── services/                the five microservices
-│   ├── shared/              Express setup, token checks, database pool, due-date rule
+│   ├── shared/              Express setup, token checks, database pool, due-date rule,
+│   │                        calls between services
 │   ├── auth-service/        sign up, log in, admin users      (auth_db)
 │   ├── task-service/        study tasks                       (task_db)
 │   ├── quiz-service/        quizzes, scores, starter quizzes  (quiz_db)
 │   ├── progress-service/    dashboard numbers from Task + Quiz
-│   ├── ai-service/          AI study plan via Ollama (no database)
+│   ├── ai-service/          AI study plan and study tips via Ollama (no database)
 │   ├── Dockerfile           one image per service (--build-arg SERVICE)
 │   └── package.json         the services' dependencies
 ├── src/
@@ -215,7 +224,7 @@ ssp-web/
 │   ├── components/          shared interface components
 │   ├── pages/               student and admin pages
 │   └── styles/              shared styles
-├── tests/                   admin seeding, due dates, tasks, progress, AI study plan
+├── tests/                   admin seeding, due dates, tasks, progress, AI plan and tips
 ├── .env.example             configuration template; copy to .env
 ├── Dockerfile.frontend      React build + Nginx frontend image (local)
 ├── Dockerfile.frontend.azure  frontend image for Azure (backend URL from env)

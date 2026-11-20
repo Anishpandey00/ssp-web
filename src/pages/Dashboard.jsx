@@ -6,6 +6,7 @@ import { dueDateError, dueDateLimits, dueDateRangeText } from '../utils/dueDate.
 import { EMPTY_TASK, compareTasks } from '../utils/tasks.js'
 import { useTasks } from '../hooks/useTasks.js'
 import TaskRow from '../components/TaskRow.jsx'
+import StudyTips from '../components/StudyTips.jsx'
 
 function getGreeting(date) {
   const h = date.getHours()
@@ -123,6 +124,9 @@ export default function Dashboard() {
           onClick={() => navigate('/progress')}
         />
       </div>
+
+      {/* AI study tips */}
+      <StudyTips />
 
       {/* Main Grid */}
       <div className="dash-grid">

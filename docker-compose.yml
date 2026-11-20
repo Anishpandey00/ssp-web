@@ -142,6 +142,9 @@ services:
       <<: *service-env
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      # Study tips read the student's tasks and quiz scores from these.
+      TASK_SERVICE_URL: http://task-service:4000
+      QUIZ_SERVICE_URL: http://quiz-service:4000
     healthcheck: *service-healthcheck
 
   frontend:

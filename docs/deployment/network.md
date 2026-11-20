@@ -34,7 +34,7 @@ Run `bash scripts/network-demo.sh` to prove each point live.
 | **Service discovery**: Docker's built-in DNS lets a container reach another by its *service name*. | `set $task_service http://task-service:4000` in [`nginx.conf`](../../nginx.conf), `TASK_SERVICE_URL` for progress-service, `DB_HOST: db` |
 | **API gateway**: nginx sends each `/api/...` path to the one service that owns it. | the `location` blocks in `nginx.conf` |
 | **Segmentation**: the frontend, progress-service and ai-service are not on `backend-net`, so they cannot reach the database at all. Only auth, task and quiz, which join both networks, can. | `networks:` under each service |
-| **Reaching the host**: ai-service (on `frontend-net` only, left out of the diagram) calls Ollama running on your computer at `host.docker.internal:11434`; nginx sends it `/api/ai/...`. | `extra_hosts:` and `OLLAMA_URL` under ai-service |
+| **Reaching the host**: ai-service (on `frontend-net` only, left out of the diagram) calls Ollama running on your computer at `host.docker.internal:11434`, and task-service and quiz-service for the study tips; nginx sends it `/api/ai/...`. | `extra_hosts:`, `OLLAMA_URL`, `TASK_SERVICE_URL` and `QUIZ_SERVICE_URL` under ai-service |
 | **Database per service**: one PostgreSQL server, but each service opens only its own database. | `AUTH_DB_NAME`, `TASK_DB_NAME`, `QUIZ_DB_NAME` |
 | **Internal network**: `internal: true` gives `backend-net` no route to the internet. | `backend-net:` → `internal: true` |
 | **Port publishing**: only the gateway publishes a port (`3000→80`). The services and the db have no `ports:`. | `ports:` under frontend |
