@@ -1,7 +1,7 @@
 # One image per service: build with --build-arg SERVICE=auth-service (or
 # task-service, quiz-service, progress-service). Each image holds the shared
 # code plus only its own service folder.
-FROM node:22-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 ENV NODE_ENV=production
