@@ -21,9 +21,14 @@ dist/
 coverage/
 .vercel
 
-# Presentations, reports and local-only helpers (kept on disk, not in GitHub)
-docs/presentations/
-docs/reports/
+# Office lock files left while a document is open
+~$*
+
+# Reports: only the RACI / traceability matrix is tracked
+docs/reports/*
+!docs/reports/SSP_RTM_RACI_Team_D_fixed.xlsx
+
+# Local-only helpers (kept on disk, not in GitHub)
 deploy/azure/.deployed.env
 scripts/publish-project.py
 scripts/remove-ai-coauthor.sh
