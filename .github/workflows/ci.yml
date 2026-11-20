@@ -7,6 +7,7 @@ permissions:
   contents: read
 jobs:
   check:
+    name: Tests, build and config
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,3 +26,17 @@ jobs:
           JWT_SECRET: ci-placeholder-not-a-real-secret
         run: |
           docker compose config --quiet
+
+  docker:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build all images
+        env:
+          DB_PASSWORD: ci-placeholder-not-a-real-password
+          JWT_SECRET: ci-placeholder-not-a-real-secret
+        run: docker compose build
+      - name: Build Azure frontend image
+        run: docker build -f docker/frontend.azure.Dockerfile -t ssp-frontend-azure:ci .

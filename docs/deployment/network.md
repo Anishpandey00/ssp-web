@@ -31,7 +31,7 @@ Run `bash scripts/network-demo.sh` to prove each point live.
 | Idea | Where it is in the code |
 |---|---|
 | **Network** = a private virtual switch (Docker `bridge`). Containers on it get a private IP and can talk to each other. | `networks:` at the bottom of `docker-compose.yml` |
-| **Service discovery**: Docker's built-in DNS lets a container reach another by its *service name*. | `set $task_service http://task-service:4000` in [`nginx.conf`](../../nginx.conf), `TASK_SERVICE_URL` for progress-service, `DB_HOST: db` |
+| **Service discovery**: Docker's built-in DNS lets a container reach another by its *service name*. | `set $task_service http://task-service:4000` in [`nginx.conf`](../../docker/nginx/nginx.conf), `TASK_SERVICE_URL` for progress-service, `DB_HOST: db` |
 | **API gateway**: nginx sends each `/api/...` path to the one service that owns it. | the `location` blocks in `nginx.conf` |
 | **Segmentation**: the frontend, progress-service and ai-service are not on `backend-net`, so they cannot reach the database at all. Only auth, task and quiz, which join both networks, can. | `networks:` under each service |
 | **Reaching the host**: ai-service (on `frontend-net` only, left out of the diagram) calls Ollama running on your computer at `host.docker.internal:11434`, and task-service and quiz-service for the study tips; nginx sends it `/api/ai/...`. | `extra_hosts:`, `OLLAMA_URL`, `TASK_SERVICE_URL` and `QUIZ_SERVICE_URL` under ai-service |

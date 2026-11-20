@@ -1,0 +1,58 @@
+name: Bug report
+description: Something in Smart Study Planner does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear description of the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in as a student
+        2. Open Tasks
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Frontend (pages, styling)
+        - auth-service
+        - task-service
+        - quiz-service
+        - progress-service
+        - ai-service
+        - Docker / deployment
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where did it happen?
+      options:
+        - Docker Compose (local)
+        - npm run server + npm run dev
+        - Azure
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Output of `docker compose logs <service>`, browser console errors, or screenshots. Remove any secrets.
+      render: text

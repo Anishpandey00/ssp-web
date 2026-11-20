@@ -12,7 +12,7 @@ RUN npm run build
 FROM nginx:stable-alpine
 
 # Use nginx's built-in template engine to inject BACKEND_URL at container start
-COPY nginx.azure.conf /etc/nginx/templates/default.conf.template
+COPY docker/nginx/nginx.azure.conf /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80

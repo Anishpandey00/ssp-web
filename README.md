@@ -1,267 +1,168 @@
-# Smart Study Planner (Web)
+<div align="center">
 
-A web-based study planner built with **React + Vite**, implementing the
-Software Requirements Specification (SRS). Students can register/log in, manage
-study tasks, take quizzes, and track their progress.
+# 📚 Smart Study Planner
 
-The backend is split into **five microservices**. Docker runs seven containers:
-an Nginx frontend that also acts as the API gateway, the Auth, Task, Quiz,
-Progress and AI services (each a small Express app), and PostgreSQL holding one
-database per service. The AI service uses a free, local AI model run by
-[Ollama](https://ollama.com) on the host; see [AI study plan and study tips](#ai-study-plan-and-study-tips-ollama).
+**Plan study tasks, test yourself with quizzes, and track your progress, with a little help from a local AI.**
+
+[![Project checks](https://github.com/Anishpandey00/ssp-web/actions/workflows/ci.yml/badge.svg)](https://github.com/Anishpandey00/ssp-web/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=nodedotjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-Container%20Apps-0078D4?logo=microsoftazure&logoColor=white)
+
+[Features](#features) · [Architecture](#architecture) · [Quick start](#quick-start) · [Documentation](#documentation) · [Project structure](#project-structure)
+
+<img src="public/study-desk.png" alt="A study desk with notes, books and a laptop" width="720" />
+
+</div>
+
+---
+
+Smart Study Planner (SSP) is a cloud-native web application built by **Team D**
+as a university project. It implements a Software Requirements Specification
+end to end: a React frontend, five Express microservices behind an nginx API
+gateway, PostgreSQL with one database per service, Docker Compose for local
+deployment, Azure Container Apps for the cloud, and GitHub Actions for CI.
+
+## Features
+
+| | |
+|---|---|
+| 🔐 **Accounts** | Sign up and log in with bcrypt-hashed passwords and JWT sessions |
+| ✅ **Study tasks** | Add, edit, complete and delete tasks with subject, priority and due date |
+| 📝 **Quizzes** | Take quizzes with instant feedback; scores are saved |
+| 📊 **Progress** | Task completion and quiz score history at a glance |
+| ✨ **AI study plan** | Turn a goal like *"Physics exam on Dec 12, weak on optics"* into suggested tasks |
+| 💡 **Today's focus** | Personal study tips based on overdue tasks and weakest quiz scores |
+| 🛠️ **Admin panel** | Manage quizzes, questions and admin rights |
+| 🛡️ **Resilient** | Health checks, automatic restarts, and partial answers when a service is down |
+
+The AI features run on [Ollama](https://ollama.com) on your own machine: free,
+private and with no API key. If it is off, the rest of the app works normally.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    browser([Browser]) -->|:3000| gw[nginx<br/>React app + API gateway]
+    gw --> auth[auth-service]
+    gw --> task[task-service]
+    gw --> quiz[quiz-service]
+    gw --> progress[progress-service]
+    gw --> ai[ai-service]
+    progress --> task & quiz
+    ai --> task & quiz
+    ai -.-> ollama[[Ollama<br/>on the host]]
+    auth --> db[(PostgreSQL<br/>auth_db · task_db · quiz_db)]
+    task --> db
+    quiz --> db
+```
+
+- **Database per service**: Auth, Task and Quiz each own their database; Progress and AI have none.
+- **Token checked everywhere**: every service verifies the JWT itself with a shared secret.
+- **Network segmentation**: the database sits on an internal Docker network with no published port.
+
+Read more in the [architecture guide](docs/design/architecture.md).
 
 ## Tech stack
 
-- React 18 + Vite, served by Nginx in Docker
-- Five Express microservices + PostgreSQL 16 (one database per service)
-- Ollama with a local model (default `qwen2.5:7b`) for the AI features
-- Nginx as the API gateway
-- React Router for navigation
-- Fonts: Fraunces (display) + Outfit (body)
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, React Router, Vite |
+| Backend | Node.js 22, Express, five microservices |
+| Data | PostgreSQL 16 |
+| AI | Ollama with `qwen2.5:7b` (configurable) |
+| Gateway | nginx |
+| DevOps | Docker, Docker Compose, Azure Container Apps, GitHub Actions |
+| Testing | `node:test` |
 
-## Run with Docker
+## Quick start
 
-Install Docker with Docker Compose, then run from the cloned repository:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` to set `DB_PASSWORD` and a long random `JWT_SECRET`. If `.env` already
-exists, update it instead of overwriting it. Then build and start all seven containers:
+Requires [Docker](https://docs.docker.com/get-docker/) with Compose.
 
 ```bash
+git clone https://github.com/Anishpandey00/ssp-web.git
+cd ssp-web
+cp .env.example .env        # then set DB_PASSWORD and a long random JWT_SECRET
 docker compose up -d --build --wait
-docker compose ps
 ```
 
-Open http://localhost:3000 (or the host port configured by `FRONTEND_PORT` in `.env`).
-Set `FRONTEND_PORT` in `.env` to change the frontend address. It defaults to 3000
-and is the only port Docker publishes; the services are reached through it.
-Save `.env`, then run `docker compose up -d --wait` to apply a port change; no rebuild
-is needed for port changes.
+Open **http://localhost:3000** and click **Sign up**.
 
-| Container | Purpose | Database |
-| --- | --- | --- |
-| `ssp-frontend` | Nginx serves React and is the API gateway: it sends each `/api/...` path to the service that owns it. The only published port: http://localhost:3000 by default. | none |
-| `ssp-auth` | `auth-service`: sign up, log in, admin user management. Issues the login token. | `auth_db` (users) |
-| `ssp-task` | `task-service`: study tasks. | `task_db` (tasks) |
-| `ssp-quiz` | `quiz-service`: quizzes, questions, saved scores, admin quiz editing. | `quiz_db` (quizzes, questions, scores) |
-| `ssp-progress` | `progress-service`: Dashboard and Progress numbers. Calls Task and Quiz at the same time. | none |
-| `ssp-ai` | `ai-service`: AI study plan and study tips. Calls Ollama on the host, and Task and Quiz for the tips; saves nothing. | none |
-| `ssp-db` | PostgreSQL holding the three service databases. Internal `db:5432`; no published port. | |
-
-| Request path | Goes to |
-| --- | --- |
-| `/api/register`, `/api/login`, `/api/admin/users/...` | auth-service |
-| `/api/tasks/...` | task-service |
-| `/api/quizzes`, `/api/scores/...`, `/api/admin/quizzes/...` | quiz-service |
-| `/api/progress/...` | progress-service |
-| `/api/ai/...` | ai-service |
-
-Every service checks the login token itself with the shared `JWT_SECRET`; none
-of them calls the Auth service to do it. If the Quiz service stops, login, tasks
-and the dashboard's task numbers keep working, and Docker restarts it.
-
-If Docker reports that a host port is already allocated, set `FRONTEND_PORT`
-in `.env` to an available port, then rerun `docker compose up -d --wait`.
-
-Compose starts the containers in four waves: PostgreSQL and the AI service
-(it needs no database); then Auth, Task and Quiz once PostgreSQL is healthy;
-then Progress once Task and Quiz are healthy; then the frontend once all five
-services are healthy. Each service creates its own
-database and tables on startup, and the Quiz service loads the starter quizzes.
-For a new database, optionally set both `ADMIN_EMAIL` and `ADMIN_PASSWORD` in
-`.env` before starting. Use a unique password of at least 12 characters. No default
-administrator password is created. Existing administrator accounts are preserved.
-The frontend calls `/api` on its own origin; Nginx forwards each request to the
-service that owns its path on the Docker network. The services do not serve
-frontend files. The database is reachable only from the Auth, Task and Quiz
-services; it does not publish a host port.
-Data persists in the `ssp-db-data` volume, including after containers are stopped.
-For an existing volume, keep its original database credentials: changing `.env`
-does not change the password stored in PostgreSQL.
-
-**Moving data from the old single backend.** A volume created before the split
-holds everything in `smart_study_planner`. After the first `docker compose up`,
-copy it into the service databases once (the old database is only read):
+For the AI features, install Ollama and pull the model once:
 
 ```bash
-bash scripts/migrate-to-microservices.sh --yes
-```
-
-```bash
-# View logs of every service
-docker compose logs -f
-
-# Check the gateway, and each service's own health check
-curl http://localhost:3000/api/health
-docker compose ps
-
-# Stop one service and watch the rest keep working, then start it again
-docker compose stop quiz-service
-docker compose start quiz-service
-
-# Open a database shell
-docker compose exec db sh -c 'psql -U "$POSTGRES_USER" -d task_db'
-
-# Stop containers while preserving database data
-docker compose down
-```
-
-`docker compose down -v` deletes the database volume and all its data.
-
-## Local development
-
-With Node.js and a running PostgreSQL database, configure `.env` for that database
-(`DB_HOST=localhost`), then run the five services and the frontend in separate terminals:
-
-```bash
-npm ci
-npm ci --prefix services
-npm run server
-npm run dev
-```
-
-`npm run server` starts Auth on port 4001, Task on 4002, Quiz on 4003,
-Progress on 4004 and AI on 4005. Vite serves the frontend at http://localhost:5173 and sends
-each `/api` path to the service that owns it, like Nginx does in Docker.
-For a production build, `npm run build` generates `dist`. In Docker, the frontend
-image copies this output into Nginx; each service image (built from
-`services/Dockerfile` with `--build-arg SERVICE=...`) holds the shared code and
-only its own service folder. `npm run preview` can preview a standalone frontend build,
-but use `npm run dev` or the Docker stack for the configured API proxy.
-
-## AI study plan and study tips (Ollama)
-
-On the **Tasks** page, **✨ Plan my study with AI** turns a goal such as
-"Physics exam on Dec 12, weak on optics" into 4–8 suggested tasks with subjects,
-due dates and priorities. The student ticks the ones to keep and adds them; they
-then go through the Task service's normal checks. Nothing is saved before that.
-
-On the **Dashboard**, **✨ Today's focus** gives one thing to do first and 2–3
-tips, based on overdue and soon-due tasks, the subject with the most pending
-work, undated tasks and the weakest and best quiz scores. These facts are worked
-out in code; the model only writes them as advice, and is told never to invent
-tasks or scores. AI tips are remembered until the student's tasks or scores
-change (**New tips** asks again). If Ollama is off or busy, the card shows
-simpler tips written in code instead, so the Dashboard never shows an error for it.
-
-The model runs on your own computer with Ollama: free, private, no API key.
-Install Ollama natively (not in Docker: on a Mac, Docker cannot use the GPU),
-then download the model once (about 4.7 GB):
-
-```bash
-brew install ollama
-brew services start ollama
 ollama pull qwen2.5:7b
 ```
 
-The `ai-service` container reaches it at `http://host.docker.internal:11434`;
-`npm run server` uses `http://localhost:11434`. Set `OLLAMA_URL` or
-`OLLAMA_MODEL` in `.env` to change either. If Ollama is not running, the rest of
-the app works normally and the AI panel shows that the assistant is offline.
-The first answer after Ollama starts can take up to a minute while the model loads.
+Running without Docker, the admin account, data migration and troubleshooting
+are covered in [Running locally](docs/deployment/local.md).
 
-Limits: one study-plan request at a time per student and five per minute; goals up to
-500 characters; ten new tips per minute. AI suggestions can be wrong, so students review them before adding.
-
-## Azure deployment
-
-The app currently deployed on Azure Container Apps is still the earlier
-three-container version (`ssp-frontend`, `ssp-backend`, `ssp-db`), created by
-`bash deploy/azure/three-containers.sh`; the database accepts internal TCP
-connections only. The current URLs are in `deploy/azure/.deployed.env`.
-Moving Azure to the five services (internal ingress for each, the frontend's
-`nginx.azure.conf` routing to them) is a separate, not yet done step. The AI
-service also needs an Ollama server Azure can reach; Azure Container Apps on the
-standard plan have no GPU, so a local model there would be slow.
-
-See [the network guide](docs/deployment/network.md) for how the containers are
-connected, and run `bash scripts/network-demo.sh` to check it live.
-
-## Verification
+## Development
 
 ```bash
-npm test
-npm run build
-docker compose config --quiet
+npm ci && npm ci --prefix services
+npm run server     # five services on ports 4001–4005
+npm run dev        # Vite on http://localhost:5173
 ```
 
-GitHub Actions runs these source checks on pushes and pull requests. Passing them
-does not replace checking the running containers and the application's main flows.
+| Command | Purpose |
+|---|---|
+| `npm test` | Unit tests |
+| `npm run build` | Production frontend build into `dist/` |
+| `docker compose config --quiet` | Validate the Compose file |
 
-## How to use
+The same checks run in GitHub Actions on every push and pull request.
 
-1. On first run, click **Sign up** to create an account (data is stored in PostgreSQL).
-2. Log in → you land on the **Dashboard** with a greeting and a **Let's Begin** button.
-3. Add and manage tasks, take a quiz, and view your progress.
+## Documentation
+
+| | |
+|---|---|
+| **Planning** | [Project plan](docs/planning/project-plan.md) · [Requirements & traceability](docs/planning/requirements.md) · [Team & RACI](docs/planning/team-and-raci.md) |
+| **Design** | [Architecture](docs/design/architecture.md) · [Database](docs/design/database.md) · [API reference](docs/design/api.md) · [UI design](docs/design/ui.md) |
+| **Implementation** | [Backend](docs/implementation/backend.md) · [Frontend](docs/implementation/frontend.md) · [Testing](docs/implementation/testing.md) |
+| **Deployment** | [Running locally](docs/deployment/local.md) · [Azure](docs/deployment/azure.md) · [Container network](docs/deployment/network.md) |
+| **Deliverables** | [Reports and presentations](docs/README.md#deliverables) |
 
 ## Project structure
 
 ```text
 ssp-web/
-├── .github/workflows/        automated project checks
-├── deploy/azure/            Azure Container Apps deployment script
-├── docs/deployment/         container network guide
-├── public/                  static images
-├── scripts/                 network demo, data migration
-├── services/                the five microservices
-│   ├── shared/              Express setup, token checks, database pool, due-date rule,
-│   │                        calls between services
-│   ├── auth-service/        sign up, log in, admin users      (auth_db)
-│   ├── task-service/        study tasks                       (task_db)
-│   ├── quiz-service/        quizzes, scores, starter quizzes  (quiz_db)
-│   ├── progress-service/    dashboard numbers from Task + Quiz
-│   ├── ai-service/          AI study plan and study tips via Ollama (no database)
-│   ├── Dockerfile           one image per service (--build-arg SERVICE)
-│   └── package.json         the services' dependencies
-├── src/
-│   ├── main.jsx             React entry point
-│   ├── App.jsx              page routes
-│   ├── api/backend.js       REST API client
-│   ├── context/             authentication state
-│   ├── components/          shared interface components
-│   ├── pages/               student and admin pages
-│   └── styles/              shared styles
-├── tests/                   admin seeding, due dates, tasks, progress, AI plan and tips
-├── .env.example             configuration template; copy to .env
-├── Dockerfile.frontend      React build + Nginx frontend image (local)
-├── Dockerfile.frontend.azure  frontend image for Azure (backend URL from env)
-├── docker-compose.yml       the seven containers and their networks
-├── nginx.conf               frontend serving and API gateway (local)
-├── nginx.azure.conf         frontend for the current Azure (single backend)
-├── index.html               frontend HTML entry
-├── package.json             dependencies and commands
-├── package-lock.json        dependency lockfile
-├── vite.config.js           frontend build and development settings
-└── README.md                setup and project guide
+├── .github/            CI workflow, issue and pull request templates, Dependabot
+├── deploy/azure/       Azure Container Apps deployment script
+├── docker/             frontend Dockerfiles and nginx configs (local and Azure)
+├── docs/               planning, design, implementation, deployment, deliverables
+├── public/             static images
+├── scripts/            network demo, data migration
+├── services/           the five microservices
+│   ├── shared/         Express setup, JWT checks, database pool, due-date rule
+│   ├── auth-service/   sign up, log in, admin users      → auth_db
+│   ├── task-service/   study tasks                       → task_db
+│   ├── quiz-service/   quizzes, questions, scores        → quiz_db
+│   ├── progress-service/  dashboard numbers from Task + Quiz
+│   ├── ai-service/     AI study plan and tips via Ollama
+│   └── Dockerfile      one image per service (--build-arg SERVICE)
+├── src/                React app: pages, components, context, API client, styles
+├── tests/              unit tests
+├── docker-compose.yml  the seven containers and their networks
+├── .env.example        configuration template
+└── package.json        frontend dependencies and scripts
 ```
 
-## SRS requirements traceability
+## Project status
 
-| Requirement                      | Where it is implemented                         |
-| -------------------------------- | ----------------------------------------------- |
-| REQ-1 enter email & password     | `pages/Login.jsx`                               |
-| REQ-2 validate credentials       | `api/backend.js` → `loginUser`              |
-| REQ-3 error on invalid input     | `pages/Login.jsx` (error banner)                |
-| REQ-4 redirect to dashboard      | `pages/Login.jsx` → `navigate('/dashboard')`    |
-| REQ-5 greeting message           | `pages/Dashboard.jsx`                           |
-| REQ-6 "Let's Begin" button       | `pages/Dashboard.jsx`                           |
-| REQ-7 button opens task section  | `pages/Dashboard.jsx` → `/tasks`                |
-| REQ-8 add tasks                  | `pages/Tasks.jsx` → `addTask`                   |
-| REQ-9 delete tasks               | `pages/Tasks.jsx` → `deleteTask`                |
-| REQ-10 tasks stored in database  | `services/task-service` (`task_db`)     |
-| REQ-11 tasks displayed in a list | `pages/Tasks.jsx`                               |
-| REQ-12 start a quiz              | `pages/Quiz.jsx`                                |
-| REQ-13 questions displayed       | `pages/Quiz.jsx`                                |
-| REQ-14 evaluate answers          | `pages/Quiz.jsx` → `choose`                     |
-| REQ-15 show final score          | `pages/Quiz.jsx` (result screen)                |
-| REQ-16 completed tasks recorded  | `backend.js` → `toggleTask` / `getProgress` |
-| REQ-17 quiz scores stored        | `backend.js` → `saveScore`                  |
-| REQ-18 progress displayed        | `pages/Progress.jsx`                            |
-| Business rule: login required    | `components/ProtectedRoute.jsx`                 |
+All SRS functional requirements are implemented, and the local deployment runs
+the full microservices design. Azure still runs the earlier three-container
+version; moving it to the microservices is the next step
+([details](docs/deployment/azure.md)).
 
-## Notes
+## Contributing
 
-User accounts, tasks, quizzes, and scores are stored in PostgreSQL.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues as described in
+[SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Team D
