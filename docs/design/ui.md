@@ -1,9 +1,7 @@
 # UI design
 
-The interface is a single-page React app. Mockups for every page are in
-[`SSP_UI_Mockup_All_Pages.pptx`](../presentations/SSP_UI_Mockup_All_Pages.pptx),
-with an alternative direction in
-[`SSP_UI_Mockup_Alternative.pptx`](../presentations/SSP_UI_Mockup_Alternative.pptx).
+The interface is a single-page React app. Screens from the running app are in
+the [final presentation](../presentations/SSP_Final_Presentation.pptx).
 
 ## Pages and navigation
 
