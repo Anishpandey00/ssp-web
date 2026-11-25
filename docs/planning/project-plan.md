@@ -47,7 +47,7 @@ The full commit history on GitHub shows each step.
 | Local Docker deployment (seven containers) | Implemented |
 | Automated checks (unit tests, build, Compose validation) | Passing in CI |
 | Azure deployment | **Partial**: Azure still runs the earlier three-container version. Moving it to the microservices is planned (see [Azure deployment](../deployment/azure.md)). |
-| Manual test cases (TC-01 to TC-35) | Tracked in the [RTM and RACI workbook](../reports/SSP_RTM_RACI_Team_D_fixed.xlsx) |
+| Manual test cases (TC-01 to TC-44) | Tracked in the [RTM and RACI workbook](../reports/SSP_RTM_RACI_Team_D_Final.xlsx) |
 
 ## Risks
 

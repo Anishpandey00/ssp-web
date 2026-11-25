@@ -1,52 +1,76 @@
 # Team and RACI
 
-The project is built by **Team D**, a team of six. Each role owns one area of
-the system, matching the service boundaries.
+The project is built by **Team D**, a team of six. Each member leads one phase
+of the project and is Accountable for it.
 
 ## Roles
 
-| Role | Main ownership area |
-|---|---|
-| Project Lead, DevOps & Cloud | Planning, architecture, Docker Compose, nginx gateway, Azure Container Apps, final integration |
-| Backend Developer: Auth & Security | `auth-service` (sign up, log in, JWT, admin users), bcrypt, token / owner / admin checks |
-| Backend Developer: Task & Progress | `task-service` (task CRUD, due-date rule), `progress-service` (dashboard numbers, fault tolerance) |
-| Backend Developer: Quiz & Admin | `quiz-service` (quizzes, questions, scores), admin quiz editing |
-| Frontend Developer: UI/UX | React pages, UI mockups, navigation, responsive styling, toasts |
-| QA, Testing & Documentation | Test cases, unit tests, CI checks, RTM upkeep, README, report and slides |
+| # | Member | Role | Main responsibilities |
+|:-:|---|---|---|
+| 1 | Thing Pemba Dorge (PT) | Planning & Requirements Lead | Project plan, schedule and weekly status; requirements (SRS); requirement traceability matrix (RTM); final acceptance against the requirements |
+| 2 | Chand Rishab (RC) | Design Lead | UI/UX mockups and page flow; system architecture; use case and sequence diagrams; ER diagram (one database per service); API design (20 endpoints) |
+| 3 | Pandey Anish Raj (AP) | Development Lead | React frontend; Auth, Task, Quiz and Progress services; AI service (study plan, Today's focus); security (JWT, bcrypt, parameterised SQL); bug fixes |
+| 4 | Ayer Ritika (RA) | Testing (QA) Lead | Test plan and manual test cases; 28 automated unit tests; integration and fault-tolerance tests; retest and sign-off of every bug fix |
+| 5 | Bashyal Sapana (SB) | DevOps & Cloud Lead | Docker images and Docker Compose (7 containers); nginx gateway and Docker networks; GitHub Actions CI; Azure Container Apps deployment |
+| 6 | Oli Shubhash (OS) | Documentation & Delivery Lead | README and setup / network guides; final report; presentation slides; live demo and final submission |
 
 ## RACI matrix
 
-**R** = Responsible (does the work) · **A** = Accountable (signs off, one per row) ·
-**C** = Consulted · **I** = Informed · **A/R** = both.
+**A/R** = Accountable + Responsible (the phase lead does the work and signs it off) ·
+**A** = Accountable (signs off) · **R** = Responsible (does the work) ·
+**C** = Consulted (gives input) · **I** = Informed (kept up to date) ·
+blank = not involved.
 
-| Phase | Activity | Lead / DevOps | Auth & Security | Task & Progress | Quiz & Admin | Frontend | QA & Docs |
+| Phase | Activity / deliverable | Pemba (PT) | Rishab (RC) | Anish (AP) | Ritika (RA) | Sapana (SB) | Shubhash (OS) |
 |---|---|:-:|:-:|:-:|:-:|:-:|:-:|
-| Planning | Project plan, schedule and weekly status | A/R | C | C | I | I | R |
-| Planning | SRS / requirements gathering | R | C | C | I | A/R | I |
-| Planning | Requirement traceability matrix upkeep | I | C | R | C | I | A/R |
-| Design | UI/UX mockups (all pages) | I | I | C | R | A/R | C |
-| Design | System architecture (microservices + gateway) | A/R | R | C | C | I | I |
-| Design | Database design (one database per service) | C | C | A/R | R | I | I |
-| Design | API design (endpoints, access rules) | I | R | C | A/R | C | I |
-| Development | Auth service | C | A/R | I | I | R | C |
-| Development | Task service and due-date rule | I | I | A/R | C | R | C |
-| Development | Quiz service | I | I | R | A/R | C | C |
-| Development | Progress service and Quiz-outage fallback | I | I | A/R | R | C | C |
-| Development | Frontend pages | I | C | C | R | A/R | I |
-| Development | Admin panel | I | C | I | A/R | R | C |
-| Development | API gateway (nginx routing) | R | A/R | I | C | C | I |
-| Development | Security: bcrypt, token checks, parameterised SQL | C | A/R | I | C | I | R |
-| Testing | Unit tests (`node:test`) | C | I | R | C | I | A/R |
-| Testing | Manual functional test cases | C | I | I | C | R | A/R |
-| Testing | Integration and fault-tolerance testing | C | I | A/R | C | I | R |
-| Testing | Bug fixing and retest | C | R | I | A/R | C | I |
-| DevOps | Docker images and Docker Compose | A/R | R | C | I | I | C |
-| DevOps | Network segmentation (internal data network) | R | A/R | C | I | C | I |
-| DevOps | CI pipeline (GitHub Actions) | R | C | I | I | C | A/R |
-| DevOps | Azure Container Apps deployment | A/R | I | R | I | C | C |
-| Delivery | README and network guide | C | C | I | I | A/R | R |
-| Delivery | Final report | R | R | R | R | R | A/R |
-| Delivery | Presentation slides and live demo | A/R | R | R | R | R | R |
+| **Planning & requirements** | Project plan, schedule and weekly status | **A/R** | C | C | I | I | I |
+| | Requirements and SRS (functional, non-functional) | **A/R** | C | C | C | | I |
+| | Requirement traceability matrix (RTM) | **A/R** | | | R | | I |
+| **Design** | UI/UX mockups and page flow | C | **A/R** | C | | | I |
+| | System architecture and UML (use case, sequence) | C | **A/R** | C | | C | I |
+| | Database design (ER diagram, one DB per service) | | **A/R** | C | | I | |
+| | API design (20 endpoints, access rules) | | **A/R** | C | C | | I |
+| **Development** | Frontend: React pages, navigation, responsive UI | | C | **A/R** | I | | |
+| | Microservices: Auth, Task, Quiz, Progress | | C | **A/R** | I | I | |
+| | AI service: study plan and Today's focus (Ollama) | C | C | **A/R** | I | I | |
+| | Security: JWT checks, bcrypt, parameterised SQL | | | **A/R** | C | C | |
+| **Testing** | Test plan and manual test cases | C | | I | **A/R** | | |
+| | Automated unit tests (28 tests, `node:test`) | | | C | **A/R** | I | |
+| | Integration and fault-tolerance tests | | | | **A/R** | C | |
+| | Bug fixing, closed only after retest | I | | R | **A** | | |
+| | Acceptance check against the requirements | **A** | | | R | | I |
+| **DevOps & deployment** | Docker images and Compose (7 containers, health checks) | | | C | I | **A/R** | |
+| | nginx API gateway and Docker networks | | C | C | | **A/R** | |
+| | CI pipeline (GitHub Actions) | | | I | C | **A/R** | |
+| | Azure Container Apps deployment | I | | I | I | **A/R** | I |
+| **Documentation & delivery** | README, setup and network guides | | | C | | C | **A/R** |
+| | Final report and presentation slides | C | C | C | C | C | **A/R** |
+| | Live demo of the running app | I | | R | | C | **A** |
 
-The editable source, with workload totals and the requirement owners, is the
-[RTM and RACI workbook](../reports/SSP_RTM_RACI_Team_D_fixed.xlsx).
+### Rules
+
+- Every activity has exactly one Accountable person (A or A/R) and at least one
+  Responsible person (R or A/R). All 23 activities pass this check.
+- **A/R** is normal when one person owns a deliverable: the phase lead both does
+  the work and signs it off.
+- **Separate sign-off.** On three activities a different person signs off, so
+  the work is checked by someone else:
+  - *Bug fixing:* the Development lead fixes the bug, and the Testing lead closes
+    it only after a retest.
+  - *Acceptance check:* the Testing lead runs the checks, and the Planning &
+    Requirements lead accepts the system against the requirements.
+  - *Live demo:* the Development lead runs the app, and the Documentation &
+    Delivery lead owns the final delivery.
+
+### Workload per member
+
+| | Pemba (PT) | Rishab (RC) | Anish (AP) | Ritika (RA) | Sapana (SB) | Shubhash (OS) |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| Accountable (A or A/R) | 4 | 4 | 4 | 4 | 4 | 3 |
+| Responsible (R or A/R) | 3 | 4 | 6 | 5 | 4 | 2 |
+| Consulted (C) | 5 | 7 | 11 | 5 | 6 | 0 |
+| Informed (I) | 3 | 0 | 3 | 6 | 5 | 8 |
+
+The editable source, with colour coding, drop-downs, the automatic check and
+the requirement owners, is the
+[RTM and RACI workbook](../reports/SSP_RTM_RACI_Team_D_Final.xlsx).

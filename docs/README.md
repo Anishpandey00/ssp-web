@@ -11,7 +11,7 @@
 
 | File | Contents |
 |---|---|
-| [`reports/SSP_RTM_RACI_Team_D_fixed.xlsx`](reports/SSP_RTM_RACI_Team_D_fixed.xlsx) | Requirement traceability matrix, test cases, RACI matrix |
+| [`reports/SSP_RTM_RACI_Team_D_Final.xlsx`](reports/SSP_RTM_RACI_Team_D_Final.xlsx) | Requirement traceability matrix, test cases, RACI matrix |
 | [`presentations/Smart_Study_Planner_Final_Report.pptx`](presentations/Smart_Study_Planner_Final_Report.pptx) | Final report |
 | [`presentations/SSP_Cloud_Native_Final_Report.pptx`](presentations/SSP_Cloud_Native_Final_Report.pptx) | Cloud-native final report |
 | [`presentations/SSP_Final_Presentation.pptx`](presentations/SSP_Final_Presentation.pptx) | Final presentation |

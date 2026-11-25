@@ -2,7 +2,7 @@
 
 ## Automated unit tests
 
-Run with `npm test` (Node's built-in `node:test`, no extra framework).
+Run with `npm test` (Node's built-in `node:test`, no extra framework). There are 28 tests in six files.
 
 | File | Covers |
 |---|---|
@@ -23,11 +23,12 @@ to `main` and every pull request:
 3. Production build (`npm run build`)
 4. Install service dependencies and syntax-check every service file
 5. Validate `docker-compose.yml`
+6. Build every Docker image (a second job, after the checks pass)
 
 ## Manual and integration tests
 
-Manual functional tests (TC-01 to TC-35), with steps, expected results and
-results, are in the [RTM and RACI workbook](../reports/SSP_RTM_RACI_Team_D_fixed.xlsx).
+Manual functional tests (TC-01 to TC-44), with steps, expected results and
+results, are in the [RTM and RACI workbook](../reports/SSP_RTM_RACI_Team_D_Final.xlsx).
 
 Useful checks against the running stack:
 
